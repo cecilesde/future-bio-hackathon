@@ -94,10 +94,17 @@ function TrialRow({ t }: { t: TrialDetail }) {
           ))}
         <span className="mono text-[10.5px] t-muted">
           {fmtDate(t.startDate)} → {fmtDate(t.completionDate)}
+          {typeof t.enrollment === "number" && t.enrollment > 0 ? ` · n=${t.enrollment.toLocaleString()}` : ""}
           {t.nctId ? ` · ${t.nctId}` : ""}
         </span>
+        {t.sponsor && <span className="mono text-[10.5px] t-muted block">{t.sponsor}</span>}
         {t.whyStopped && (
-          <p className="text-[12px] t-muted leading-snug mt-0.5">stopped: {t.whyStopped}</p>
+          <p className="text-[12px] leading-snug mt-0.5" style={{ color: "var(--red)" }}>
+            stopped: {t.whyStopped}
+          </p>
+        )}
+        {t.summary && (
+          <p className="text-[11.5px] t-muted leading-snug mt-0.5 line-clamp-3">{t.summary}</p>
         )}
         {t.stopReasonCategories.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-1">
@@ -179,9 +186,8 @@ export default function Swimlanes({
       <div className="flex items-baseline justify-between gap-3 px-4 pt-4 pb-3">
         <div>
           <div className="eyebrow">Reference cohort · survival</div>
-          <h3 className="serif text-[19px] leading-tight mt-1">
-            How programs like this one have died
-          </h3>
+          <h3 className="serif text-[19px] leading-tight mt-1">Similar programmes</h3>
+          <p className="text-[11.5px] t-muted mt-0.5">how mechanistically related programmes resolved</p>
         </div>
         <div className="hidden sm:flex items-center gap-3 text-[11px] mono t-muted">
           <span className="inline-flex items-center gap-1.5">

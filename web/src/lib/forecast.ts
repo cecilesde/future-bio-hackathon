@@ -121,6 +121,18 @@ const STAGE_RANK: Record<string, number> = {
 };
 const MAX_TRIALS_PER_PROGRAM = 15;
 
+// Most informative first: trials with a stoppage reason, then later phase, then
+// most recent. Shared by OT attach and AMASS enrichment.
+function sortTrials(a: TrialDetail, b: TrialDetail): number {
+  const wa = a.whyStopped ? 1 : 0;
+  const wb = b.whyStopped ? 1 : 0;
+  if (wb !== wa) return wb - wa;
+  const sr = (STAGE_RANK[b.phase] ?? 0) - (STAGE_RANK[a.phase] ?? 0);
+  if (sr) return sr;
+  return (b.startDate ?? "").localeCompare(a.startDate ?? "");
+}
+const trialKey = (t: TrialDetail) => t.nctId ?? `${t.title ?? ""}|${t.phase}|${t.startDate ?? ""}`;
+
 // Join each curated program back to its raw Open Targets candidate (by drugId,
 // then drug name) and attach the real trials. Ground-truth structured data, not
 // LLM prose. Then best-effort enrich each trial's completion date from pg_trials
@@ -138,34 +150,28 @@ async function attachTrials(cohort: CuratedProgram[], cands: CohortCandidate[]):
 
     const seen = new Set<string>();
     const trials: TrialDetail[] = cand.reports
-      .map((r) => ({
-        phase: r.phase ?? "",
-        status: r.status,
-        startDate: r.startDate,
-        completionDate: null as string | null,
-        whyStopped: r.whyStopped,
-        stopReasonCategories: r.stopReasonCategories ?? [],
-        title: r.title,
-        url: r.url,
-        nctId: r.nctId,
-      }))
+      .map(
+        (r): TrialDetail => ({
+          phase: r.phase ?? "",
+          status: r.status,
+          startDate: r.startDate,
+          completionDate: null,
+          whyStopped: r.whyStopped,
+          stopReasonCategories: r.stopReasonCategories ?? [],
+          title: r.title,
+          url: r.url,
+          nctId: r.nctId,
+          source: "open_targets",
+        })
+      )
       .filter((t) => {
-        const k = t.nctId ?? `${t.title ?? ""}|${t.phase}|${t.startDate ?? ""}`;
+        const k = trialKey(t);
         if (seen.has(k)) return false;
         seen.add(k);
         return true;
       })
-      // Most informative first: trials with a stoppage reason, then later phase,
-      // then most recent. Some drugs have 100+ trials; cap to keep payload sane.
-      .sort((a, b) => {
-        const wa = a.whyStopped ? 1 : 0;
-        const wb = b.whyStopped ? 1 : 0;
-        if (wb !== wa) return wb - wa;
-        const sr = (STAGE_RANK[b.phase] ?? 0) - (STAGE_RANK[a.phase] ?? 0);
-        if (sr) return sr;
-        return (b.startDate ?? "").localeCompare(a.startDate ?? "");
-      })
-      .slice(0, MAX_TRIALS_PER_PROGRAM);
+      .sort(sortTrials);
+    // NB: not capped here; the AMASS enrichment step caps after merging.
 
     return { ...program, trials } as CohortProgram;
   });
@@ -242,20 +248,38 @@ async function curateCohort(
   return { cohort, cohortSummary: data.cohortSummary ?? "" };
 }
 
-// Merge AMASS trials fetched for the drug(s) the user typed into the matching
-// cohort program (by drug name), deduped by NCT id. If the typed drug is not in
-// the OT cohort, the trials are still available for the model via provenance but
-// are not force-injected as a new program (the cohort stays OT-curated).
-function mergeSubjectTrials(cohort: CohortProgram[], drugs: Drug[], subjectTrials: TrialDetail[]): CohortProgram[] {
-  if (!subjectTrials.length) return cohort;
-  const typed = new Set(drugs.map((d) => d.name.toLowerCase()));
-  return cohort.map((p) => {
-    if (!typed.has(p.drug.toLowerCase())) return p;
-    const seen = new Set((p.trials ?? []).map((t) => t.nctId ?? t.title ?? ""));
-    const extra = subjectTrials.filter((t) => !seen.has(t.nctId ?? t.title ?? ""));
-    if (!extra.length) return p;
-    return { ...p, trials: [...(p.trials ?? []), ...extra].slice(0, MAX_TRIALS_PER_PROGRAM) };
-  });
+// Enrich EVERY similar programme with an AMASS trialcore ping (one per programme,
+// cached per drug in pg_evidence so a credit is spent at most once). AMASS trials
+// (a) fill missing why-stopped / summary / enrollment on the OT trials we already
+// have, by NCT id, and (b) add AMASS-only trials. This is what makes the "similar
+// programmes" dropdowns detailed on exactly why each programme died. Capped after
+// merge to keep payload sane.
+async function enrichCohortWithAmass(cohort: CohortProgram[]): Promise<CohortProgram[]> {
+  return Promise.all(
+    cohort.map(async (p) => {
+      const amass = await getDrugTrials(p.drug).catch(() => [] as TrialDetail[]);
+      if (!amass.length) return p;
+      const amassByNct = new Map(amass.filter((t) => t.nctId).map((t) => [t.nctId as string, t]));
+
+      const existing = (p.trials ?? []).map((t) => {
+        const a = t.nctId ? amassByNct.get(t.nctId) : undefined;
+        if (!a) return t;
+        return {
+          ...t,
+          whyStopped: t.whyStopped ?? a.whyStopped,
+          completionDate: t.completionDate ?? a.completionDate,
+          summary: t.summary ?? a.summary,
+          enrollment: t.enrollment ?? a.enrollment,
+          sponsor: t.sponsor ?? a.sponsor,
+        };
+      });
+
+      const seen = new Set(existing.map(trialKey));
+      const extra = amass.filter((t) => !seen.has(trialKey(t)));
+      const merged = [...existing, ...extra].sort(sortTrials).slice(0, MAX_TRIALS_PER_PROGRAM);
+      return { ...p, trials: merged };
+    })
+  );
 }
 
 // ---------------------------------------------------------------- Stage 2 ----
@@ -467,7 +491,7 @@ export async function generateForecast(input: ForecastInput): Promise<ForecastRe
   // trials from the raw Open Targets candidates (+ pg_trials completion dates),
   // then merge in any AMASS trials fetched for the drug(s) the user typed.
   const { cohort: curatedCohort, cohortSummary } = await curateCohort(input, cands, subjectModality);
-  const cohort = mergeSubjectTrials(await attachTrials(curatedCohort, cands), input.drugs, subjectDrugTrials);
+  const cohort = await enrichCohortWithAmass(await attachTrials(curatedCohort, cands));
 
   // Stage 2 — modality feasibility + failure modes + derisking (LLM, grounded).
   const mr = await modalityAndRisks(input, cohort, elicitPapers, patents, subjectModality);

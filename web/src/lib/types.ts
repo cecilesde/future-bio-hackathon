@@ -63,6 +63,11 @@ export interface TrialDetail {
   title: string | null;
   url: string | null; // ClinicalTrials.gov link (carries the NCT id)
   nctId: string | null;
+  // richer detail, mostly from AMASS trialcore enrichment
+  summary?: string | null; // brief study summary
+  enrollment?: number | null;
+  sponsor?: string | null;
+  source?: "open_targets" | "amass";
 }
 
 export interface CohortProgram {

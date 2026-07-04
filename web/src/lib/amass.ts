@@ -86,6 +86,10 @@ export async function searchDrugTrials(drug: string, limit = 15): Promise<{ tria
       title: str(t.briefTitle),
       url: str(t.sourceUrl),
       nctId,
+      summary: str(t.briefSummary),
+      enrollment: typeof t.enrollment === "number" ? t.enrollment : null,
+      sponsor: str(t.sponsorName),
+      source: "amass",
     });
   }
   return { trials, outOfCredits: r.outOfCredits };

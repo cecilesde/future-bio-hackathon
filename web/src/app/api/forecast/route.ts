@@ -16,7 +16,7 @@ function drugKeyOf(drugs: Drug[]): string {
 }
 
 // Bump when the cached report shape changes so old rows miss and regenerate.
-const SCHEMA_VERSION = "v3"; // v3: + AMASS patents and subject-drug trials
+const SCHEMA_VERSION = "v4"; // v4: AMASS-enriched per-programme trials (why-stopped/summary)
 
 function cacheKey(disease: string, target: string, drugKey: string): string {
   return createHash("sha1")
