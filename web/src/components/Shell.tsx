@@ -3,11 +3,20 @@
 import { useState } from "react";
 import Prognosis from "./Prognosis";
 import TrialLandscape from "./TrialLandscape";
-import { distribution } from "@/lib/trials";
+import type { Disease, Report } from "@/lib/types";
+import type { TrialDistribution } from "@/lib/trials";
 
 type Tab = "forecast" | "landscape";
 
-export default function Shell() {
+export default function Shell({
+  diseases,
+  reports,
+  distribution,
+}: {
+  diseases: Disease[];
+  reports: Record<string, Report>;
+  distribution: TrialDistribution;
+}) {
   const [tab, setTab] = useState<Tab>("forecast");
 
   return (
@@ -16,7 +25,10 @@ export default function Shell() {
         <div className="flex items-center justify-between gap-4 pt-6">
           <div className="mono text-[13px] tracking-[0.35em] t-accent flex-none">PROGNOSIS</div>
 
-          <nav className="flex items-center gap-1 p-1 rounded-full" style={{ border: "1px solid var(--line-2)", background: "var(--bg-2)" }}>
+          <nav
+            className="flex items-center gap-1 p-1 rounded-full"
+            style={{ border: "1px solid var(--line-2)", background: "var(--bg-2)" }}
+          >
             <TabButton active={tab === "forecast"} onClick={() => setTab("forecast")}>
               Forecast
             </TabButton>
@@ -29,15 +41,15 @@ export default function Shell() {
             <span
               className="pill flex-none"
               style={{ borderColor: "var(--line-2)" }}
-              title="Forecast data in this demo is illustrative, not verified clinical fact."
+              title="Reports are authored/illustrative; targets are live from Open Targets."
             >
-              <i className="dot" style={{ background: "var(--amber)" }} /> illustrative demo data
+              <i className="dot" style={{ background: "var(--amber)" }} /> illustrative forecasts
             </span>
           ) : (
             <span
               className="pill flex-none"
               style={{ borderColor: "var(--green-dim)", color: "var(--green)" }}
-              title="Real records harvested from the AMASS trialcore API."
+              title="Real records harvested from the AMASS trialcore API, served from Supabase."
             >
               <i className="dot" style={{ background: "var(--green)" }} />{" "}
               {distribution.meta.totalUniqueTrials.toLocaleString()} AMASS trials
@@ -46,7 +58,11 @@ export default function Shell() {
         </div>
       </div>
 
-      {tab === "forecast" ? <Prognosis /> : <TrialLandscape />}
+      {tab === "forecast" ? (
+        <Prognosis diseases={diseases} reports={reports} />
+      ) : (
+        <TrialLandscape distribution={distribution} />
+      )}
     </>
   );
 }

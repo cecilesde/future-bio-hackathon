@@ -1,0 +1,1843 @@
+{
+ "meta": {
+  "source": "AMASS trialcore (api.amass.tech) harvested cache",
+  "totalUniqueTrials": 43285,
+  "mappedTrials": 34015,
+  "excludedNonDisease": 2617,
+  "unmappedConditionMentions": 16611,
+  "areas": 17,
+  "note": "Counts are over the project's harvested AMASS trialcore set (trials matching the drug-repurposing vocabulary), deduplicated by NCT ID. This is a representative sample, not the full 1.2M-trial AMASS index. A trial with multiple conditions contributes to each disease it matches, so disease counts sum to more than the unique-trial total. Stratification uses MeSH condition terms where present, else free-text conditions."
+ },
+ "areas": [
+  {
+   "area": "Oncology",
+   "trials": 7763,
+   "diseases": [
+    {
+     "disease": "Other solid & blood cancers",
+     "trials": 2113,
+     "phases": {
+      "P1": 644,
+      "P2": 802,
+      "P3": 274,
+      "P4": 82,
+      "NA": 311
+     },
+     "status": {
+      "completed": 1099,
+      "ongoing": 443,
+      "stopped": 371,
+      "other": 200
+     },
+     "enrollment": 4186523
+    },
+    {
+     "disease": "Breast cancer",
+     "trials": 681,
+     "phases": {
+      "P1": 148,
+      "P2": 262,
+      "P3": 101,
+      "P4": 28,
+      "NA": 142
+     },
+     "status": {
+      "completed": 323,
+      "ongoing": 156,
+      "stopped": 135,
+      "other": 67
+     },
+     "enrollment": 3315565
+    },
+    {
+     "disease": "Lung cancer",
+     "trials": 613,
+     "phases": {
+      "P1": 179,
+      "P2": 265,
+      "P3": 68,
+      "P4": 7,
+      "NA": 94
+     },
+     "status": {
+      "completed": 278,
+      "ongoing": 143,
+      "stopped": 134,
+      "other": 58
+     },
+     "enrollment": 2410830
+    },
+    {
+     "disease": "Leukemia",
+     "trials": 601,
+     "phases": {
+      "P1": 192,
+      "P2": 273,
+      "P3": 71,
+      "P4": 16,
+      "NA": 49
+     },
+     "status": {
+      "completed": 329,
+      "ongoing": 83,
+      "stopped": 132,
+      "other": 57
+     },
+     "enrollment": 1110578
+    },
+    {
+     "disease": "Lymphoma",
+     "trials": 590,
+     "phases": {
+      "P1": 174,
+      "P2": 257,
+      "P3": 96,
+      "P4": 14,
+      "NA": 49
+     },
+     "status": {
+      "completed": 302,
+      "ongoing": 117,
+      "stopped": 121,
+      "other": 50
+     },
+     "enrollment": 1084932
+    },
+    {
+     "disease": "Prostate cancer",
+     "trials": 464,
+     "phases": {
+      "P1": 91,
+      "P2": 176,
+      "P3": 73,
+      "P4": 16,
+      "NA": 108
+     },
+     "status": {
+      "completed": 255,
+      "ongoing": 98,
+      "stopped": 69,
+      "other": 42
+     },
+     "enrollment": 367155
+    },
+    {
+     "disease": "Colorectal cancer",
+     "trials": 412,
+     "phases": {
+      "P1": 97,
+      "P2": 159,
+      "P3": 56,
+      "P4": 10,
+      "NA": 90
+     },
+     "status": {
+      "completed": 191,
+      "ongoing": 110,
+      "stopped": 68,
+      "other": 43
+     },
+     "enrollment": 6966744
+    },
+    {
+     "disease": "Brain cancer / glioma",
+     "trials": 298,
+     "phases": {
+      "P1": 99,
+      "P2": 124,
+      "P3": 21,
+      "P4": 6,
+      "NA": 48
+     },
+     "status": {
+      "completed": 139,
+      "ongoing": 80,
+      "stopped": 62,
+      "other": 17
+     },
+     "enrollment": 25465
+    },
+    {
+     "disease": "Multiple myeloma",
+     "trials": 263,
+     "phases": {
+      "P1": 78,
+      "P2": 114,
+      "P3": 44,
+      "P4": 10,
+      "NA": 17
+     },
+     "status": {
+      "completed": 151,
+      "ongoing": 41,
+      "stopped": 58,
+      "other": 13
+     },
+     "enrollment": 33318
+    },
+    {
+     "disease": "Melanoma",
+     "trials": 226,
+     "phases": {
+      "P1": 79,
+      "P2": 107,
+      "P3": 13,
+      "P4": 1,
+      "NA": 26
+     },
+     "status": {
+      "completed": 111,
+      "ongoing": 57,
+      "stopped": 40,
+      "other": 18
+     },
+     "enrollment": 2979310
+    },
+    {
+     "disease": "Sarcoma",
+     "trials": 213,
+     "phases": {
+      "P1": 63,
+      "P2": 115,
+      "P3": 15,
+      "P4": 0,
+      "NA": 20
+     },
+     "status": {
+      "completed": 120,
+      "ongoing": 49,
+      "stopped": 37,
+      "other": 7
+     },
+     "enrollment": 21980
+    },
+    {
+     "disease": "Head & neck cancer",
+     "trials": 198,
+     "phases": {
+      "P1": 64,
+      "P2": 83,
+      "P3": 17,
+      "P4": 9,
+      "NA": 25
+     },
+     "status": {
+      "completed": 94,
+      "ongoing": 48,
+      "stopped": 42,
+      "other": 14
+     },
+     "enrollment": 20230
+    },
+    {
+     "disease": "Ovarian cancer",
+     "trials": 188,
+     "phases": {
+      "P1": 64,
+      "P2": 85,
+      "P3": 16,
+      "P4": 1,
+      "NA": 22
+     },
+     "status": {
+      "completed": 102,
+      "ongoing": 39,
+      "stopped": 40,
+      "other": 7
+     },
+     "enrollment": 40520
+    },
+    {
+     "disease": "Pancreatic cancer",
+     "trials": 170,
+     "phases": {
+      "P1": 57,
+      "P2": 70,
+      "P3": 19,
+      "P4": 5,
+      "NA": 19
+     },
+     "status": {
+      "completed": 74,
+      "ongoing": 41,
+      "stopped": 34,
+      "other": 21
+     },
+     "enrollment": 2395156
+    },
+    {
+     "disease": "Liver cancer",
+     "trials": 169,
+     "phases": {
+      "P1": 37,
+      "P2": 65,
+      "P3": 20,
+      "P4": 7,
+      "NA": 40
+     },
+     "status": {
+      "completed": 68,
+      "ongoing": 55,
+      "stopped": 20,
+      "other": 26
+     },
+     "enrollment": 27992
+    },
+    {
+     "disease": "Kidney cancer",
+     "trials": 163,
+     "phases": {
+      "P1": 47,
+      "P2": 87,
+      "P3": 7,
+      "P4": 4,
+      "NA": 18
+     },
+     "status": {
+      "completed": 100,
+      "ongoing": 28,
+      "stopped": 33,
+      "other": 2
+     },
+     "enrollment": 2396160
+    },
+    {
+     "disease": "Bladder cancer",
+     "trials": 159,
+     "phases": {
+      "P1": 35,
+      "P2": 52,
+      "P3": 26,
+      "P4": 11,
+      "NA": 35
+     },
+     "status": {
+      "completed": 97,
+      "ongoing": 33,
+      "stopped": 20,
+      "other": 9
+     },
+     "enrollment": 2546194
+    },
+    {
+     "disease": "Gastric cancer",
+     "trials": 136,
+     "phases": {
+      "P1": 28,
+      "P2": 60,
+      "P3": 11,
+      "P4": 3,
+      "NA": 34
+     },
+     "status": {
+      "completed": 59,
+      "ongoing": 32,
+      "stopped": 16,
+      "other": 29
+     },
+     "enrollment": 2504768
+    },
+    {
+     "disease": "Cervical cancer",
+     "trials": 106,
+     "phases": {
+      "P1": 20,
+      "P2": 31,
+      "P3": 12,
+      "P4": 1,
+      "NA": 42
+     },
+     "status": {
+      "completed": 62,
+      "ongoing": 23,
+      "stopped": 10,
+      "other": 11
+     },
+     "enrollment": 206509
+    }
+   ]
+  },
+  {
+   "area": "Psychiatry & Mental Health",
+   "trials": 6171,
+   "diseases": [
+    {
+     "disease": "Depression",
+     "trials": 1477,
+     "phases": {
+      "P1": 148,
+      "P2": 243,
+      "P3": 368,
+      "P4": 382,
+      "NA": 336
+     },
+     "status": {
+      "completed": 998,
+      "ongoing": 170,
+      "stopped": 162,
+      "other": 147
+     },
+     "enrollment": 4507718
+    },
+    {
+     "disease": "Substance use disorders",
+     "trials": 1286,
+     "phases": {
+      "P1": 211,
+      "P2": 422,
+      "P3": 179,
+      "P4": 228,
+      "NA": 246
+     },
+     "status": {
+      "completed": 927,
+      "ongoing": 154,
+      "stopped": 133,
+      "other": 72
+     },
+     "enrollment": 2274581
+    },
+    {
+     "disease": "Schizophrenia & psychosis",
+     "trials": 1019,
+     "phases": {
+      "P1": 127,
+      "P2": 117,
+      "P3": 260,
+      "P4": 315,
+      "NA": 200
+     },
+     "status": {
+      "completed": 772,
+      "ongoing": 62,
+      "stopped": 114,
+      "other": 71
+     },
+     "enrollment": 316363
+    },
+    {
+     "disease": "Anxiety & PTSD",
+     "trials": 585,
+     "phases": {
+      "P1": 38,
+      "P2": 127,
+      "P3": 102,
+      "P4": 150,
+      "NA": 168
+     },
+     "status": {
+      "completed": 364,
+      "ongoing": 86,
+      "stopped": 90,
+      "other": 45
+     },
+     "enrollment": 405460
+    },
+    {
+     "disease": "Bipolar disorder",
+     "trials": 563,
+     "phases": {
+      "P1": 25,
+      "P2": 66,
+      "P3": 182,
+      "P4": 171,
+      "NA": 119
+     },
+     "status": {
+      "completed": 402,
+      "ongoing": 45,
+      "stopped": 82,
+      "other": 34
+     },
+     "enrollment": 1391497
+    },
+    {
+     "disease": "ADHD",
+     "trials": 434,
+     "phases": {
+      "P1": 24,
+      "P2": 52,
+      "P3": 113,
+      "P4": 163,
+      "NA": 82
+     },
+     "status": {
+      "completed": 345,
+      "ongoing": 26,
+      "stopped": 32,
+      "other": 31
+     },
+     "enrollment": 1590229
+    },
+    {
+     "disease": "Sleep disorders",
+     "trials": 395,
+     "phases": {
+      "P1": 40,
+      "P2": 50,
+      "P3": 96,
+      "P4": 117,
+      "NA": 92
+     },
+     "status": {
+      "completed": 273,
+      "ongoing": 53,
+      "stopped": 40,
+      "other": 29
+     },
+     "enrollment": 122900
+    },
+    {
+     "disease": "Other mental health",
+     "trials": 157,
+     "phases": {
+      "P1": 16,
+      "P2": 21,
+      "P3": 42,
+      "P4": 22,
+      "NA": 56
+     },
+     "status": {
+      "completed": 112,
+      "ongoing": 19,
+      "stopped": 16,
+      "other": 10
+     },
+     "enrollment": 2192582
+    },
+    {
+     "disease": "Autism spectrum",
+     "trials": 143,
+     "phases": {
+      "P1": 15,
+      "P2": 48,
+      "P3": 34,
+      "P4": 15,
+      "NA": 31
+     },
+     "status": {
+      "completed": 95,
+      "ongoing": 26,
+      "stopped": 14,
+      "other": 8
+     },
+     "enrollment": 1012323
+    },
+    {
+     "disease": "Delirium",
+     "trials": 112,
+     "phases": {
+      "P1": 3,
+      "P2": 13,
+      "P3": 28,
+      "P4": 39,
+      "NA": 29
+     },
+     "status": {
+      "completed": 52,
+      "ongoing": 25,
+      "stopped": 22,
+      "other": 13
+     },
+     "enrollment": 52133
+    }
+   ]
+  },
+  {
+   "area": "Cardiovascular",
+   "trials": 5976,
+   "diseases": [
+    {
+     "disease": "Hypertension",
+     "trials": 1269,
+     "phases": {
+      "P1": 98,
+      "P2": 150,
+      "P3": 380,
+      "P4": 404,
+      "NA": 237
+     },
+     "status": {
+      "completed": 885,
+      "ongoing": 93,
+      "stopped": 146,
+      "other": 145
+     },
+     "enrollment": 8578333
+    },
+    {
+     "disease": "Coronary artery disease / ACS",
+     "trials": 1182,
+     "phases": {
+      "P1": 39,
+      "P2": 101,
+      "P3": 228,
+      "P4": 475,
+      "NA": 339
+     },
+     "status": {
+      "completed": 711,
+      "ongoing": 154,
+      "stopped": 108,
+      "other": 209
+     },
+     "enrollment": 3604842
+    },
+    {
+     "disease": "Cardiovascular (other)",
+     "trials": 831,
+     "phases": {
+      "P1": 44,
+      "P2": 117,
+      "P3": 213,
+      "P4": 181,
+      "NA": 276
+     },
+     "status": {
+      "completed": 478,
+      "ongoing": 143,
+      "stopped": 100,
+      "other": 110
+     },
+     "enrollment": 11045001
+    },
+    {
+     "disease": "Heart failure",
+     "trials": 631,
+     "phases": {
+      "P1": 37,
+      "P2": 89,
+      "P3": 144,
+      "P4": 185,
+      "NA": 176
+     },
+     "status": {
+      "completed": 351,
+      "ongoing": 100,
+      "stopped": 86,
+      "other": 94
+     },
+     "enrollment": 746930
+    },
+    {
+     "disease": "Atrial fibrillation & arrhythmia",
+     "trials": 543,
+     "phases": {
+      "P1": 22,
+      "P2": 60,
+      "P3": 121,
+      "P4": 131,
+      "NA": 209
+     },
+     "status": {
+      "completed": 295,
+      "ongoing": 96,
+      "stopped": 58,
+      "other": 94
+     },
+     "enrollment": 4659636
+    },
+    {
+     "disease": "Stroke",
+     "trials": 434,
+     "phases": {
+      "P1": 29,
+      "P2": 74,
+      "P3": 110,
+      "P4": 82,
+      "NA": 139
+     },
+     "status": {
+      "completed": 214,
+      "ongoing": 112,
+      "stopped": 44,
+      "other": 64
+     },
+     "enrollment": 2493490
+    },
+    {
+     "disease": "Venous thromboembolism",
+     "trials": 420,
+     "phases": {
+      "P1": 30,
+      "P2": 58,
+      "P3": 135,
+      "P4": 65,
+      "NA": 132
+     },
+     "status": {
+      "completed": 277,
+      "ongoing": 46,
+      "stopped": 46,
+      "other": 51
+     },
+     "enrollment": 2108062
+    },
+    {
+     "disease": "Pulmonary hypertension",
+     "trials": 379,
+     "phases": {
+      "P1": 42,
+      "P2": 81,
+      "P3": 116,
+      "P4": 68,
+      "NA": 72
+     },
+     "status": {
+      "completed": 217,
+      "ongoing": 44,
+      "stopped": 85,
+      "other": 33
+     },
+     "enrollment": 62416
+    },
+    {
+     "disease": "Atherosclerosis",
+     "trials": 191,
+     "phases": {
+      "P1": 15,
+      "P2": 24,
+      "P3": 46,
+      "P4": 68,
+      "NA": 38
+     },
+     "status": {
+      "completed": 114,
+      "ongoing": 29,
+      "stopped": 15,
+      "other": 33
+     },
+     "enrollment": 246546
+    },
+    {
+     "disease": "Peripheral arterial disease",
+     "trials": 96,
+     "phases": {
+      "P1": 10,
+      "P2": 8,
+      "P3": 31,
+      "P4": 17,
+      "NA": 30
+     },
+     "status": {
+      "completed": 52,
+      "ongoing": 14,
+      "stopped": 13,
+      "other": 17
+     },
+     "enrollment": 334539
+    }
+   ]
+  },
+  {
+   "area": "Metabolic & Endocrine",
+   "trials": 5101,
+   "diseases": [
+    {
+     "disease": "Type 2 diabetes",
+     "trials": 1507,
+     "phases": {
+      "P1": 223,
+      "P2": 182,
+      "P3": 457,
+      "P4": 370,
+      "NA": 275
+     },
+     "status": {
+      "completed": 1134,
+      "ongoing": 128,
+      "stopped": 134,
+      "other": 111
+     },
+     "enrollment": 5242530
+    },
+    {
+     "disease": "Diabetes (other/unspecified)",
+     "trials": 925,
+     "phases": {
+      "P1": 97,
+      "P2": 153,
+      "P3": 240,
+      "P4": 212,
+      "NA": 223
+     },
+     "status": {
+      "completed": 612,
+      "ongoing": 110,
+      "stopped": 96,
+      "other": 107
+     },
+     "enrollment": 3997952
+    },
+    {
+     "disease": "Obesity & overweight",
+     "trials": 734,
+     "phases": {
+      "P1": 89,
+      "P2": 116,
+      "P3": 112,
+      "P4": 153,
+      "NA": 264
+     },
+     "status": {
+      "completed": 403,
+      "ongoing": 207,
+      "stopped": 62,
+      "other": 62
+     },
+     "enrollment": 1545288
+    },
+    {
+     "disease": "Dyslipidemia",
+     "trials": 695,
+     "phases": {
+      "P1": 86,
+      "P2": 76,
+      "P3": 280,
+      "P4": 152,
+      "NA": 101
+     },
+     "status": {
+      "completed": 551,
+      "ongoing": 47,
+      "stopped": 47,
+      "other": 50
+     },
+     "enrollment": 2593874
+    },
+    {
+     "disease": "Osteoporosis",
+     "trials": 466,
+     "phases": {
+      "P1": 39,
+      "P2": 61,
+      "P3": 144,
+      "P4": 120,
+      "NA": 102
+     },
+     "status": {
+      "completed": 338,
+      "ongoing": 44,
+      "stopped": 39,
+      "other": 45
+     },
+     "enrollment": 760589
+    },
+    {
+     "disease": "Thyroid & other endocrine",
+     "trials": 279,
+     "phases": {
+      "P1": 14,
+      "P2": 32,
+      "P3": 37,
+      "P4": 50,
+      "NA": 146
+     },
+     "status": {
+      "completed": 180,
+      "ongoing": 40,
+      "stopped": 28,
+      "other": 31
+     },
+     "enrollment": 610191
+    },
+    {
+     "disease": "Type 1 diabetes",
+     "trials": 218,
+     "phases": {
+      "P1": 39,
+      "P2": 62,
+      "P3": 44,
+      "P4": 19,
+      "NA": 54
+     },
+     "status": {
+      "completed": 139,
+      "ongoing": 45,
+      "stopped": 23,
+      "other": 11
+     },
+     "enrollment": 58719
+    },
+    {
+     "disease": "Metabolic syndrome",
+     "trials": 157,
+     "phases": {
+      "P1": 9,
+      "P2": 23,
+      "P3": 24,
+      "P4": 42,
+      "NA": 59
+     },
+     "status": {
+      "completed": 105,
+      "ongoing": 14,
+      "stopped": 20,
+      "other": 18
+     },
+     "enrollment": 46907
+    },
+    {
+     "disease": "NAFLD / NASH",
+     "trials": 120,
+     "phases": {
+      "P1": 21,
+      "P2": 46,
+      "P3": 12,
+      "P4": 17,
+      "NA": 24
+     },
+     "status": {
+      "completed": 71,
+      "ongoing": 19,
+      "stopped": 18,
+      "other": 12
+     },
+     "enrollment": 16498
+    }
+   ]
+  },
+  {
+   "area": "Neurology",
+   "trials": 3981,
+   "diseases": [
+    {
+     "disease": "Dementia & cognitive impairment",
+     "trials": 655,
+     "phases": {
+      "P1": 47,
+      "P2": 127,
+      "P3": 125,
+      "P4": 157,
+      "NA": 199
+     },
+     "status": {
+      "completed": 390,
+      "ongoing": 137,
+      "stopped": 68,
+      "other": 60
+     },
+     "enrollment": 228207
+    },
+    {
+     "disease": "Epilepsy",
+     "trials": 592,
+     "phases": {
+      "P1": 69,
+      "P2": 102,
+      "P3": 171,
+      "P4": 112,
+      "NA": 138
+     },
+     "status": {
+      "completed": 427,
+      "ongoing": 52,
+      "stopped": 55,
+      "other": 58
+     },
+     "enrollment": 2600262
+    },
+    {
+     "disease": "Migraine & headache",
+     "trials": 589,
+     "phases": {
+      "P1": 45,
+      "P2": 69,
+      "P3": 198,
+      "P4": 120,
+      "NA": 157
+     },
+     "status": {
+      "completed": 387,
+      "ongoing": 91,
+      "stopped": 57,
+      "other": 54
+     },
+     "enrollment": 278131
+    },
+    {
+     "disease": "Alzheimer's disease",
+     "trials": 585,
+     "phases": {
+      "P1": 109,
+      "P2": 134,
+      "P3": 129,
+      "P4": 79,
+      "NA": 134
+     },
+     "status": {
+      "completed": 355,
+      "ongoing": 121,
+      "stopped": 72,
+      "other": 37
+     },
+     "enrollment": 220980
+    },
+    {
+     "disease": "Parkinson's disease",
+     "trials": 559,
+     "phases": {
+      "P1": 86,
+      "P2": 133,
+      "P3": 116,
+      "P4": 89,
+      "NA": 135
+     },
+     "status": {
+      "completed": 372,
+      "ongoing": 74,
+      "stopped": 64,
+      "other": 49
+     },
+     "enrollment": 113822
+    },
+    {
+     "disease": "Neuropathy & neuropathic pain",
+     "trials": 261,
+     "phases": {
+      "P1": 20,
+      "P2": 60,
+      "P3": 67,
+      "P4": 47,
+      "NA": 67
+     },
+     "status": {
+      "completed": 154,
+      "ongoing": 33,
+      "stopped": 41,
+      "other": 33
+     },
+     "enrollment": 2412044
+    },
+    {
+     "disease": "Multiple sclerosis",
+     "trials": 204,
+     "phases": {
+      "P1": 21,
+      "P2": 64,
+      "P3": 44,
+      "P4": 19,
+      "NA": 56
+     },
+     "status": {
+      "completed": 128,
+      "ongoing": 27,
+      "stopped": 29,
+      "other": 20
+     },
+     "enrollment": 30169
+    },
+    {
+     "disease": "Brain & spinal cord injury",
+     "trials": 204,
+     "phases": {
+      "P1": 20,
+      "P2": 47,
+      "P3": 32,
+      "P4": 47,
+      "NA": 58
+     },
+     "status": {
+      "completed": 111,
+      "ongoing": 34,
+      "stopped": 30,
+      "other": 29
+     },
+     "enrollment": 20768
+    },
+    {
+     "disease": "Restless legs & movement",
+     "trials": 170,
+     "phases": {
+      "P1": 11,
+      "P2": 36,
+      "P3": 36,
+      "P4": 29,
+      "NA": 58
+     },
+     "status": {
+      "completed": 108,
+      "ongoing": 28,
+      "stopped": 19,
+      "other": 15
+     },
+     "enrollment": 138793
+    },
+    {
+     "disease": "ALS & motor neuron",
+     "trials": 162,
+     "phases": {
+      "P1": 21,
+      "P2": 56,
+      "P3": 35,
+      "P4": 7,
+      "NA": 43
+     },
+     "status": {
+      "completed": 86,
+      "ongoing": 40,
+      "stopped": 17,
+      "other": 19
+     },
+     "enrollment": 42977
+    }
+   ]
+  },
+  {
+   "area": "Immunology & Inflammation",
+   "trials": 3618,
+   "diseases": [
+    {
+     "disease": "Rheumatoid arthritis",
+     "trials": 813,
+     "phases": {
+      "P1": 71,
+      "P2": 133,
+      "P3": 251,
+      "P4": 140,
+      "NA": 218
+     },
+     "status": {
+      "completed": 603,
+      "ongoing": 68,
+      "stopped": 73,
+      "other": 69
+     },
+     "enrollment": 1489870
+    },
+    {
+     "disease": "Autoimmune / inflammatory (other)",
+     "trials": 620,
+     "phases": {
+      "P1": 57,
+      "P2": 126,
+      "P3": 169,
+      "P4": 82,
+      "NA": 186
+     },
+     "status": {
+      "completed": 335,
+      "ongoing": 142,
+      "stopped": 70,
+      "other": 73
+     },
+     "enrollment": 204122
+    },
+    {
+     "disease": "Inflammatory bowel disease",
+     "trials": 486,
+     "phases": {
+      "P1": 25,
+      "P2": 100,
+      "P3": 111,
+      "P4": 59,
+      "NA": 191
+     },
+     "status": {
+      "completed": 221,
+      "ongoing": 140,
+      "stopped": 76,
+      "other": 49
+     },
+     "enrollment": 159344
+    },
+    {
+     "disease": "Graft-vs-host & transplant immunity",
+     "trials": 403,
+     "phases": {
+      "P1": 28,
+      "P2": 90,
+      "P3": 71,
+      "P4": 140,
+      "NA": 74
+     },
+     "status": {
+      "completed": 286,
+      "ongoing": 33,
+      "stopped": 44,
+      "other": 40
+     },
+     "enrollment": 56031
+    },
+    {
+     "disease": "Psoriasis & psoriatic arthritis",
+     "trials": 316,
+     "phases": {
+      "P1": 38,
+      "P2": 65,
+      "P3": 125,
+      "P4": 40,
+      "NA": 48
+     },
+     "status": {
+      "completed": 235,
+      "ongoing": 43,
+      "stopped": 19,
+      "other": 19
+     },
+     "enrollment": 112955
+    },
+    {
+     "disease": "Lupus",
+     "trials": 259,
+     "phases": {
+      "P1": 33,
+      "P2": 72,
+      "P3": 62,
+      "P4": 30,
+      "NA": 62
+     },
+     "status": {
+      "completed": 134,
+      "ongoing": 57,
+      "stopped": 38,
+      "other": 30
+     },
+     "enrollment": 26068959
+    },
+    {
+     "disease": "Allergic rhinitis & allergy",
+     "trials": 232,
+     "phases": {
+      "P1": 24,
+      "P2": 44,
+      "P3": 85,
+      "P4": 40,
+      "NA": 39
+     },
+     "status": {
+      "completed": 175,
+      "ongoing": 21,
+      "stopped": 14,
+      "other": 22
+     },
+     "enrollment": 53419
+    },
+    {
+     "disease": "Scleroderma & connective tissue",
+     "trials": 208,
+     "phases": {
+      "P1": 17,
+      "P2": 76,
+      "P3": 60,
+      "P4": 25,
+      "NA": 30
+     },
+     "status": {
+      "completed": 120,
+      "ongoing": 39,
+      "stopped": 18,
+      "other": 31
+     },
+     "enrollment": 35891
+    },
+    {
+     "disease": "Atopic dermatitis",
+     "trials": 168,
+     "phases": {
+      "P1": 23,
+      "P2": 42,
+      "P3": 48,
+      "P4": 21,
+      "NA": 34
+     },
+     "status": {
+      "completed": 111,
+      "ongoing": 35,
+      "stopped": 14,
+      "other": 8
+     },
+     "enrollment": 44200
+    },
+    {
+     "disease": "Ankylosing spondylitis",
+     "trials": 113,
+     "phases": {
+      "P1": 7,
+      "P2": 23,
+      "P3": 34,
+      "P4": 17,
+      "NA": 32
+     },
+     "status": {
+      "completed": 78,
+      "ongoing": 4,
+      "stopped": 17,
+      "other": 14
+     },
+     "enrollment": 37352
+    }
+   ]
+  },
+  {
+   "area": "Respiratory",
+   "trials": 2760,
+   "diseases": [
+    {
+     "disease": "Asthma",
+     "trials": 950,
+     "phases": {
+      "P1": 97,
+      "P2": 162,
+      "P3": 289,
+      "P4": 197,
+      "NA": 205
+     },
+     "status": {
+      "completed": 697,
+      "ongoing": 77,
+      "stopped": 98,
+      "other": 78
+     },
+     "enrollment": 1500281
+    },
+    {
+     "disease": "Respiratory (other)",
+     "trials": 629,
+     "phases": {
+      "P1": 48,
+      "P2": 144,
+      "P3": 185,
+      "P4": 99,
+      "NA": 153
+     },
+     "status": {
+      "completed": 361,
+      "ongoing": 72,
+      "stopped": 113,
+      "other": 83
+     },
+     "enrollment": 7072736
+    },
+    {
+     "disease": "COPD",
+     "trials": 557,
+     "phases": {
+      "P1": 65,
+      "P2": 103,
+      "P3": 160,
+      "P4": 112,
+      "NA": 117
+     },
+     "status": {
+      "completed": 419,
+      "ongoing": 38,
+      "stopped": 60,
+      "other": 40
+     },
+     "enrollment": 624367
+    },
+    {
+     "disease": "Pulmonary fibrosis / ILD",
+     "trials": 236,
+     "phases": {
+      "P1": 25,
+      "P2": 63,
+      "P3": 71,
+      "P4": 24,
+      "NA": 53
+     },
+     "status": {
+      "completed": 129,
+      "ongoing": 50,
+      "stopped": 26,
+      "other": 31
+     },
+     "enrollment": 71760
+    },
+    {
+     "disease": "Cystic fibrosis",
+     "trials": 199,
+     "phases": {
+      "P1": 22,
+      "P2": 44,
+      "P3": 54,
+      "P4": 10,
+      "NA": 69
+     },
+     "status": {
+      "completed": 140,
+      "ongoing": 20,
+      "stopped": 19,
+      "other": 20
+     },
+     "enrollment": 25646
+    },
+    {
+     "disease": "Sleep apnea",
+     "trials": 189,
+     "phases": {
+      "P1": 14,
+      "P2": 37,
+      "P3": 30,
+      "P4": 40,
+      "NA": 68
+     },
+     "status": {
+      "completed": 123,
+      "ongoing": 26,
+      "stopped": 25,
+      "other": 15
+     },
+     "enrollment": 176811
+    }
+   ]
+  },
+  {
+   "area": "Infectious Disease",
+   "trials": 1728,
+   "diseases": [
+    {
+     "disease": "Infectious (other)",
+     "trials": 487,
+     "phases": {
+      "P1": 61,
+      "P2": 120,
+      "P3": 112,
+      "P4": 71,
+      "NA": 123
+     },
+     "status": {
+      "completed": 323,
+      "ongoing": 71,
+      "stopped": 35,
+      "other": 58
+     },
+     "enrollment": 28277651
+    },
+    {
+     "disease": "COVID-19",
+     "trials": 465,
+     "phases": {
+      "P1": 36,
+      "P2": 126,
+      "P3": 172,
+      "P4": 36,
+      "NA": 95
+     },
+     "status": {
+      "completed": 212,
+      "ongoing": 21,
+      "stopped": 132,
+      "other": 100
+     },
+     "enrollment": 598469
+    },
+    {
+     "disease": "HIV/AIDS",
+     "trials": 363,
+     "phases": {
+      "P1": 105,
+      "P2": 95,
+      "P3": 38,
+      "P4": 43,
+      "NA": 82
+     },
+     "status": {
+      "completed": 275,
+      "ongoing": 28,
+      "stopped": 34,
+      "other": 26
+     },
+     "enrollment": 138458
+    },
+    {
+     "disease": "Viral hepatitis",
+     "trials": 266,
+     "phases": {
+      "P1": 59,
+      "P2": 90,
+      "P3": 49,
+      "P4": 26,
+      "NA": 42
+     },
+     "status": {
+      "completed": 176,
+      "ongoing": 25,
+      "stopped": 34,
+      "other": 31
+     },
+     "enrollment": 268271
+    },
+    {
+     "disease": "Sepsis",
+     "trials": 147,
+     "phases": {
+      "P1": 10,
+      "P2": 27,
+      "P3": 34,
+      "P4": 29,
+      "NA": 47
+     },
+     "status": {
+      "completed": 65,
+      "ongoing": 27,
+      "stopped": 22,
+      "other": 33
+     },
+     "enrollment": 61331
+    }
+   ]
+  },
+  {
+   "area": "Pain",
+   "trials": 1658,
+   "diseases": [
+    {
+     "disease": "Chronic & general pain",
+     "trials": 1242,
+     "phases": {
+      "P1": 120,
+      "P2": 184,
+      "P3": 326,
+      "P4": 289,
+      "NA": 323
+     },
+     "status": {
+      "completed": 822,
+      "ongoing": 136,
+      "stopped": 169,
+      "other": 115
+     },
+     "enrollment": 315456
+    },
+    {
+     "disease": "Postoperative pain",
+     "trials": 416,
+     "phases": {
+      "P1": 16,
+      "P2": 40,
+      "P3": 77,
+      "P4": 175,
+      "NA": 108
+     },
+     "status": {
+      "completed": 249,
+      "ongoing": 78,
+      "stopped": 36,
+      "other": 53
+     },
+     "enrollment": 72115
+    }
+   ]
+  },
+  {
+   "area": "Musculoskeletal",
+   "trials": 1172,
+   "diseases": [
+    {
+     "disease": "Arthritis & MSK (other)",
+     "trials": 530,
+     "phases": {
+      "P1": 25,
+      "P2": 89,
+      "P3": 186,
+      "P4": 80,
+      "NA": 150
+     },
+     "status": {
+      "completed": 353,
+      "ongoing": 88,
+      "stopped": 56,
+      "other": 33
+     },
+     "enrollment": 592587
+    },
+    {
+     "disease": "Osteoarthritis",
+     "trials": 428,
+     "phases": {
+      "P1": 26,
+      "P2": 56,
+      "P3": 115,
+      "P4": 81,
+      "NA": 150
+     },
+     "status": {
+      "completed": 274,
+      "ongoing": 56,
+      "stopped": 47,
+      "other": 51
+     },
+     "enrollment": 160133
+    },
+    {
+     "disease": "Gout",
+     "trials": 117,
+     "phases": {
+      "P1": 13,
+      "P2": 30,
+      "P3": 32,
+      "P4": 26,
+      "NA": 16
+     },
+     "status": {
+      "completed": 84,
+      "ongoing": 11,
+      "stopped": 12,
+      "other": 10
+     },
+     "enrollment": 337811
+    },
+    {
+     "disease": "Fibromyalgia",
+     "trials": 97,
+     "phases": {
+      "P1": 3,
+      "P2": 13,
+      "P3": 35,
+      "P4": 17,
+      "NA": 29
+     },
+     "status": {
+      "completed": 59,
+      "ongoing": 14,
+      "stopped": 15,
+      "other": 9
+     },
+     "enrollment": 23293
+    }
+   ]
+  },
+  {
+   "area": "Renal & Urology",
+   "trials": 1151,
+   "diseases": [
+    {
+     "disease": "Chronic kidney disease",
+     "trials": 664,
+     "phases": {
+      "P1": 83,
+      "P2": 118,
+      "P3": 142,
+      "P4": 160,
+      "NA": 161
+     },
+     "status": {
+      "completed": 401,
+      "ongoing": 89,
+      "stopped": 83,
+      "other": 91
+     },
+     "enrollment": 5684704
+    },
+    {
+     "disease": "Urologic conditions",
+     "trials": 403,
+     "phases": {
+      "P1": 41,
+      "P2": 50,
+      "P3": 107,
+      "P4": 108,
+      "NA": 97
+     },
+     "status": {
+      "completed": 277,
+      "ongoing": 45,
+      "stopped": 26,
+      "other": 55
+     },
+     "enrollment": 163923
+    },
+    {
+     "disease": "Acute kidney injury & transplant",
+     "trials": 84,
+     "phases": {
+      "P1": 6,
+      "P2": 16,
+      "P3": 12,
+      "P4": 15,
+      "NA": 35
+     },
+     "status": {
+      "completed": 43,
+      "ongoing": 16,
+      "stopped": 11,
+      "other": 14
+     },
+     "enrollment": 5687248
+    }
+   ]
+  },
+  {
+   "area": "Gastroenterology",
+   "trials": 870,
+   "diseases": [
+    {
+     "disease": "GERD & GI (other)",
+     "trials": 645,
+     "phases": {
+      "P1": 54,
+      "P2": 92,
+      "P3": 163,
+      "P4": 156,
+      "NA": 180
+     },
+     "status": {
+      "completed": 427,
+      "ongoing": 75,
+      "stopped": 91,
+      "other": 52
+     },
+     "enrollment": 7420154
+    },
+    {
+     "disease": "Liver disease (non-cancer)",
+     "trials": 225,
+     "phases": {
+      "P1": 43,
+      "P2": 46,
+      "P3": 37,
+      "P4": 44,
+      "NA": 55
+     },
+     "status": {
+      "completed": 117,
+      "ongoing": 47,
+      "stopped": 22,
+      "other": 39
+     },
+     "enrollment": 31609
+    }
+   ]
+  },
+  {
+   "area": "Ophthalmology",
+   "trials": 448,
+   "diseases": [
+    {
+     "disease": "Eye disease",
+     "trials": 448,
+     "phases": {
+      "P1": 47,
+      "P2": 147,
+      "P3": 117,
+      "P4": 65,
+      "NA": 72
+     },
+     "status": {
+      "completed": 294,
+      "ongoing": 64,
+      "stopped": 42,
+      "other": 48
+     },
+     "enrollment": 74932
+    }
+   ]
+  },
+  {
+   "area": "Women's & Reproductive",
+   "trials": 418,
+   "diseases": [
+    {
+     "disease": "Obstetric & gynecologic",
+     "trials": 418,
+     "phases": {
+      "P1": 43,
+      "P2": 71,
+      "P3": 70,
+      "P4": 64,
+      "NA": 170
+     },
+     "status": {
+      "completed": 216,
+      "ongoing": 84,
+      "stopped": 58,
+      "other": 60
+     },
+     "enrollment": 356844
+    }
+   ]
+  },
+  {
+   "area": "Supportive & symptomatic",
+   "trials": 354,
+   "diseases": [
+    {
+     "disease": "Nausea & vomiting",
+     "trials": 227,
+     "phases": {
+      "P1": 19,
+      "P2": 35,
+      "P3": 60,
+      "P4": 61,
+      "NA": 52
+     },
+     "status": {
+      "completed": 149,
+      "ongoing": 29,
+      "stopped": 27,
+      "other": 22
+     },
+     "enrollment": 52885
+    },
+    {
+     "disease": "Fatigue & cachexia",
+     "trials": 127,
+     "phases": {
+      "P1": 9,
+      "P2": 33,
+      "P3": 28,
+      "P4": 21,
+      "NA": 36
+     },
+     "status": {
+      "completed": 70,
+      "ongoing": 24,
+      "stopped": 20,
+      "other": 13
+     },
+     "enrollment": 10440
+    }
+   ]
+  },
+  {
+   "area": "Dermatology",
+   "trials": 292,
+   "diseases": [
+    {
+     "disease": "Skin disease (other)",
+     "trials": 292,
+     "phases": {
+      "P1": 26,
+      "P2": 98,
+      "P3": 88,
+      "P4": 33,
+      "NA": 47
+     },
+     "status": {
+      "completed": 195,
+      "ongoing": 35,
+      "stopped": 38,
+      "other": 24
+     },
+     "enrollment": 70093
+    }
+   ]
+  },
+  {
+   "area": "Hematology (non-cancer)",
+   "trials": 270,
+   "diseases": [
+    {
+     "disease": "Sickle cell & anemia",
+     "trials": 270,
+     "phases": {
+      "P1": 43,
+      "P2": 107,
+      "P3": 55,
+      "P4": 16,
+      "NA": 49
+     },
+     "status": {
+      "completed": 149,
+      "ongoing": 44,
+      "stopped": 47,
+      "other": 30
+     },
+     "enrollment": 60174
+    }
+   ]
+  }
+ ]
+}

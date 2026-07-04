@@ -1,0 +1,812 @@
+{
+ "diseases": [
+  {
+   "id": "obesity",
+   "name": "Obesity",
+   "synonym": "ICD-10 E66 · MONDO:0011122"
+  },
+  {
+   "id": "alzheimers",
+   "name": "Alzheimer's disease",
+   "synonym": "ICD-10 G30 · MONDO:0004975"
+  }
+ ],
+ "reports": {
+  "obesity:GLP1R": {
+   "attrition": 0.38,
+   "exitPhase": "Phase 2",
+   "verdict": "Biology is de-risked. This program lives or dies on oral bioavailability and a differentiated tolerability profile, not on whether GLP-1R agonism works.",
+   "confidence": "High",
+   "confidenceReason": "Dense, directly analogous cohort: multiple approved GLP-1 programs, including one oral peptide.",
+   "cohortSummary": "Of 6 mechanism-matched programs, 3 reached approval. The failures cluster not on efficacy but on oral delivery and tolerability.",
+   "cohort": [
+    {
+     "drug": "Oral semaglutide (Rybelsus)",
+     "sponsor": "Novo Nordisk",
+     "target": "GLP1R",
+     "indication": "T2D / obesity",
+     "modality": "Oral peptide",
+     "reached": "Approved",
+     "outcome": "Approved",
+     "reason": "Approved with a SNAC absorption enhancer; ~1% oral bioavailability under strict fasting/water dosing.",
+     "similarity": 0.95,
+     "year": 2019
+    },
+    {
+     "drug": "Semaglutide inj. (Wegovy)",
+     "sponsor": "Novo Nordisk",
+     "target": "GLP1R",
+     "indication": "Obesity",
+     "modality": "Injectable peptide",
+     "reached": "Approved",
+     "outcome": "Approved",
+     "reason": "Approved; sets the ~15% weight-loss efficacy benchmark.",
+     "similarity": 0.78,
+     "year": 2021
+    },
+    {
+     "drug": "Liraglutide (Saxenda)",
+     "sponsor": "Novo Nordisk",
+     "target": "GLP1R",
+     "indication": "Obesity",
+     "modality": "Injectable peptide",
+     "reached": "Approved",
+     "outcome": "Approved",
+     "reason": "Approved; established the class GI-tolerability profile.",
+     "similarity": 0.7,
+     "year": 2014
+    },
+    {
+     "drug": "Orforglipron",
+     "sponsor": "Eli Lilly",
+     "target": "GLP1R (oral SM)",
+     "indication": "Obesity",
+     "modality": "Small molecule",
+     "reached": "Phase 3",
+     "outcome": "Ongoing",
+     "reason": "Ongoing Phase 3; a non-peptide oral competitor raising the differentiation bar.",
+     "similarity": 0.62,
+     "year": 2024
+    },
+    {
+     "drug": "Danuglipron",
+     "sponsor": "Pfizer",
+     "target": "GLP1R (oral SM)",
+     "indication": "Obesity",
+     "modality": "Small molecule",
+     "reached": "Phase 2",
+     "outcome": "Discontinued",
+     "deathPhase": "Phase 2",
+     "reason": "Discontinued after a liver-enzyme safety signal; illustrates oral GLP-1R tolerability/tox risk.",
+     "similarity": 0.58,
+     "year": 2025
+    },
+    {
+     "drug": "TTP273 (oral)",
+     "sponsor": "vTv Therapeutics",
+     "target": "GLP1R",
+     "indication": "T2D",
+     "modality": "Small molecule",
+     "reached": "Phase 2",
+     "outcome": "Failed",
+     "deathPhase": "Phase 2",
+     "reason": "Modest efficacy; did not clear the class benchmark.",
+     "similarity": 0.5,
+     "year": 2018
+    }
+   ],
+   "failureModes": [
+    {
+     "title": "Oral bioavailability collapse",
+     "mechanism": "Peptide is degraded and poorly absorbed in the GI tract; needs a permeation enhancer plus strict fasting/water conditions that crush real-world adherence.",
+     "probability": 0.4,
+     "evidence": "Oral semaglutide reaches only ~1% bioavailability with SNAC and strict dosing. A modest formulation shortfall drops exposure below the efficacious threshold.",
+     "killExperiment": "14-day human PK bridging study of the formulation against the oral-semaglutide benchmark; measure the fed/fasted exposure ratio.",
+     "cost": "$0.8–1.5M",
+     "timeline": "3–4 months",
+     "signal": "amber"
+    },
+    {
+     "title": "GI tolerability ceiling",
+     "mechanism": "Nausea and vomiting limit up-titration to the efficacious dose; oral exposure spikes can worsen it versus steady injectable release.",
+     "probability": 0.25,
+     "evidence": "The whole GLP-1 class shows dose-limiting GI adverse events; discontinuation on titration is common.",
+     "killExperiment": "Phase 1 MAD with a slow-titration arm; track % discontinuation and the achieved tolerated dose.",
+     "cost": "$3–5M",
+     "timeline": "6–9 months",
+     "signal": "amber"
+    },
+    {
+     "title": "Efficacy differentiation vs a moving benchmark",
+     "mechanism": "The commercial bar is a 15–25% weight loss set by dual/triple agonists; a single-target oral GLP-1R may underwhelm even if it works.",
+     "probability": 0.25,
+     "evidence": "Approved and late-stage incretin combinations set a high threshold that GLP-1R monotherapy has not matched.",
+     "killExperiment": "Model achievable weight loss from Phase 1 exposure, then a 12-week Phase 2a signal versus historical control.",
+     "cost": "$8–12M",
+     "timeline": "9–12 months",
+     "signal": "green"
+    },
+    {
+     "title": "Real-world adherence gap",
+     "mechanism": "Strict fasting and water conditions depress persistence, widening the gap between trial and market performance.",
+     "probability": 0.1,
+     "evidence": "Dosing conditions for oral peptides materially reduce real-world adherence.",
+     "killExperiment": "Patient-preference survey and adherence simulation against the injectable standard of care.",
+     "cost": "$0.2M",
+     "timeline": "2 months",
+     "signal": "green"
+    }
+   ],
+   "modality": {
+    "modality": "Oral peptide",
+    "overall": 0.52,
+    "verdict": "Feasible but the hardest axis in the program. Precedent exists, but the formulation is the single largest technical risk.",
+    "axes": [
+     {
+      "label": "Proteolytic stability",
+      "score": 0.5,
+      "note": "Native backbone is protease-labile; requires stabilizing modifications or enhancer co-formulation."
+     },
+     {
+      "label": "Intestinal permeability",
+      "score": 0.4,
+      "note": "Large hydrophilic peptide; a permeation enhancer (SNAC / C10) is essential and drives variability."
+     },
+     {
+      "label": "Oral bioavailability",
+      "score": 0.35,
+      "note": "Class precedent is ~1%; small formulation changes swing exposure widely."
+     },
+     {
+      "label": "Target tissue access",
+      "score": 0.85,
+      "note": "GLP-1R is peripherally accessible; no CNS penetration required for the metabolic effect."
+     },
+     {
+      "label": "Manufacturing / CMC",
+      "score": 0.7,
+      "note": "Solid-phase peptide synthesis at scale is established; enhancer co-formulation adds complexity."
+     }
+    ]
+   },
+   "bull": [
+    "Mechanism is the most clinically validated in metabolic disease, GLP-1R agonism has multiple approvals across T2D and obesity.",
+    "A direct oral-peptide precedent exists (oral semaglutide), so the formulation and regulatory path is charted, not hypothetical.",
+    "Peripheral target: no blood-brain-barrier problem and no need for a novel biomarker to prove engagement."
+   ],
+   "bear": [
+    "Every dollar of risk sits in formulation and tolerability, the two areas where oral peptides most often stall in Phase 1–2.",
+    "The efficacy benchmark is rising fast (dual/triple agonists at 20%+ weight loss); a single-target oral may be commercially undifferentiated even if it works.",
+    "Strict fasting/water dosing depresses real-world adherence, widening the gap between trial and market performance."
+   ],
+   "derisking": [
+    {
+     "action": "Run a 14-day human PK bridging study against the oral-semaglutide benchmark before any efficacy spend.",
+     "addresses": "Oral bioavailability collapse",
+     "cost": "$0.8–1.5M",
+     "readout": "3–4 months",
+     "voi": "Decisive"
+    },
+    {
+     "action": "Add a slow-titration arm to first-in-human MAD to characterise the GI tolerability ceiling early.",
+     "addresses": "GI tolerability ceiling",
+     "cost": "$3–5M",
+     "readout": "6–9 months",
+     "voi": "High"
+    },
+    {
+     "action": "Model achievable weight loss from Phase 1 exposure before committing to Phase 2b.",
+     "addresses": "Efficacy differentiation",
+     "cost": "$0.2M",
+     "readout": "1 month",
+     "voi": "High"
+    }
+   ],
+   "calibration": {
+    "nHeldOut": 214,
+    "cutoffYear": 2019,
+    "auprc": 0.74,
+    "baseline": 0.11,
+    "brier": 0.14,
+    "note": "Metabolic-disease programs that read out after the 2019 cutoff; predictions use only pre-readout evidence.",
+    "bins": [
+     {
+      "predicted": 0.1,
+      "actual": 0.09,
+      "n": 18
+     },
+     {
+      "predicted": 0.3,
+      "actual": 0.34,
+      "n": 41
+     },
+     {
+      "predicted": 0.5,
+      "actual": 0.47,
+      "n": 55
+     },
+     {
+      "predicted": 0.7,
+      "actual": 0.72,
+      "n": 63
+     },
+     {
+      "predicted": 0.9,
+      "actual": 0.93,
+      "n": 37
+     }
+    ]
+   }
+  },
+  "obesity:MC4R": {
+   "attrition": 0.72,
+   "exitPhase": "Phase 2",
+   "verdict": "MC4R agonism works for weight, but broad (non-genetic) obesity has repeatedly failed on cardiovascular safety. Approvable only in a narrow genetic sub-population unless the safety window is solved.",
+   "confidence": "High",
+   "confidenceReason": "Clear repeated precedent: approved narrowly (setmelanotide) and failed broadly on the same mechanism-linked toxicity.",
+   "cohortSummary": "5 mechanism-matched programs. The single approval is confined to rare monogenic obesity; broad-obesity programs died in Phase 2 on the same cardiovascular signal.",
+   "cohort": [
+    {
+     "drug": "Setmelanotide (Imcivree)",
+     "sponsor": "Rhythm",
+     "target": "MC4R",
+     "indication": "Monogenic obesity",
+     "modality": "Injectable peptide",
+     "reached": "Approved",
+     "outcome": "Approved",
+     "reason": "Approved only for rare POMC/LEPR/MC4R-pathway genetic obesity, not common obesity.",
+     "similarity": 0.7,
+     "year": 2020
+    },
+    {
+     "drug": "MC4R agonist (broad obesity)",
+     "sponsor": "Multiple",
+     "target": "MC4R",
+     "indication": "Common obesity",
+     "modality": "Small molecule",
+     "reached": "Phase 2",
+     "outcome": "Failed",
+     "deathPhase": "Phase 2",
+     "reason": "Blood-pressure and heart-rate increases at efficacious doses.",
+     "similarity": 0.78,
+     "year": 2013
+    },
+    {
+     "drug": "MK-0493",
+     "sponsor": "Merck",
+     "target": "MC4R",
+     "indication": "Obesity",
+     "modality": "Small molecule",
+     "reached": "Phase 2",
+     "outcome": "Discontinued",
+     "deathPhase": "Phase 2",
+     "reason": "Insufficient weight-loss efficacy at tolerated doses.",
+     "similarity": 0.72,
+     "year": 2009
+    },
+    {
+     "drug": "MC4R agonist (CV signal)",
+     "sponsor": "Undisclosed",
+     "target": "MC4R",
+     "indication": "Obesity",
+     "modality": "Small molecule",
+     "reached": "Phase 1",
+     "outcome": "Failed",
+     "deathPhase": "Phase 1",
+     "reason": "Cardiovascular signal in first-in-human.",
+     "similarity": 0.6,
+     "year": 2016
+    },
+    {
+     "drug": "Setmelanotide (hypothalamic obesity)",
+     "sponsor": "Rhythm",
+     "target": "MC4R",
+     "indication": "Hypothalamic obesity",
+     "modality": "Injectable peptide",
+     "reached": "Phase 3",
+     "outcome": "Ongoing",
+     "reason": "Label-expansion program into acquired hypothalamic obesity.",
+     "similarity": 0.5,
+     "year": 2024
+    }
+   ],
+   "failureModes": [
+    {
+     "title": "Cardiovascular safety (BP / heart rate)",
+     "mechanism": "MC4R agonism raises blood pressure and heart rate at doses needed for weight loss. This is mechanism-linked, not an off-target artefact.",
+     "probability": 0.45,
+     "evidence": "Multiple MC4R agonists showed the same BP/HR increase at efficacious exposure, a recurring, not idiosyncratic, death.",
+     "killExperiment": "Dedicated ambulatory-BP and cardiac-telemetry study in Phase 1 SAD/MAD at projected efficacious exposure.",
+     "cost": "$4–6M",
+     "timeline": "6–9 months",
+     "signal": "red"
+    },
+    {
+     "title": "Efficacy only in a genetic sub-population",
+     "mechanism": "Robust weight loss reproduces in MC4R-pathway genetic obesity but is modest or absent in common polygenic obesity.",
+     "probability": 0.3,
+     "evidence": "The one approval is confined to monogenic obesity; broad-population efficacy has never convincingly reproduced.",
+     "killExperiment": "Enrich Phase 2 for MC4R-pathway variants with pre-specified genetic vs non-genetic arms.",
+     "cost": "$10–15M",
+     "timeline": "12–18 months",
+     "signal": "amber"
+    },
+    {
+     "title": "Narrow therapeutic index at a CNS target",
+     "mechanism": "Efficacy requires CNS exposure; on-target central effects (nausea, hyperpigmentation) narrow the usable window.",
+     "probability": 0.15,
+     "evidence": "On-target melanocortin effects appear close to the efficacious dose.",
+     "killExperiment": "PK/PD margin study measuring CNS adverse-event onset versus the weight-loss dose.",
+     "cost": "$3M",
+     "timeline": "6 months",
+     "signal": "amber"
+    },
+    {
+     "title": "Commercial differentiation",
+     "mechanism": "Enters a market where the GLP-1 class sets a 15–25% weight-loss bar that MC4R monotherapy has not approached broadly.",
+     "probability": 0.1,
+     "evidence": "Class benchmark far exceeds demonstrated MC4R broad-obesity efficacy.",
+     "killExperiment": "Target-product-profile gap analysis against the standard of care.",
+     "cost": "$0.1M",
+     "timeline": "1 month",
+     "signal": "green"
+    }
+   ],
+   "modality": {
+    "modality": "Small molecule",
+    "overall": 0.58,
+    "verdict": "Small-molecule access to MC4R is achievable. The constraint is biology and safety, not delivery.",
+    "axes": [
+     {
+      "label": "Target engagement",
+      "score": 0.8,
+      "note": "Well-characterised GPCR; small-molecule agonists are tractable."
+     },
+     {
+      "label": "CNS penetration",
+      "score": 0.65,
+      "note": "Required for efficacy; adds toxicity surface."
+     },
+     {
+      "label": "Melanocortin selectivity",
+      "score": 0.55,
+      "note": "Off-target MC1R/MC3R/MC5R activity drives pigmentation and cardiovascular effects."
+     },
+     {
+      "label": "Oral bioavailability",
+      "score": 0.8,
+      "note": "Small molecule; standard oral PK is achievable."
+     },
+     {
+      "label": "Therapeutic window",
+      "score": 0.35,
+      "note": "Narrow: the efficacious dose overlaps the cardiovascular-effect dose."
+     }
+    ]
+   },
+   "bull": [
+    "Mechanism is genetically validated, loss-of-function in the MC4R pathway causes severe obesity, so agonism is a human-validated lever.",
+    "One drug on this exact pathway is already approved (setmelanotide), proving the mechanism is drugged and regulable.",
+    "Small-molecule oral delivery is straightforward; there is no formulation risk."
+   ],
+   "bear": [
+    "The cardiovascular failure is mechanism-linked and has killed multiple programs at the same step, a recurring, not idiosyncratic, death.",
+    "Efficacy convincingly reproduces only in a rare genetic population; the commercial prize (common obesity) is exactly where it has failed.",
+    "It enters a market where the GLP-1 class sets a 15–25% weight-loss bar that MC4R monotherapy has never approached."
+   ],
+   "derisking": [
+    {
+     "action": "Front-load an ambulatory-BP and cardiac-telemetry study at projected efficacious exposure in first-in-human.",
+     "addresses": "Cardiovascular safety",
+     "cost": "$4–6M",
+     "readout": "6–9 months",
+     "voi": "Decisive"
+    },
+    {
+     "action": "Design Phase 2 with pre-specified genetic-enrichment vs common-obesity arms so the population question is answered, not confounded.",
+     "addresses": "Efficacy only in a genetic sub-population",
+     "cost": "$10–15M",
+     "readout": "12–18 months",
+     "voi": "High"
+    }
+   ],
+   "calibration": {
+    "nHeldOut": 189,
+    "cutoffYear": 2018,
+    "auprc": 0.7,
+    "baseline": 0.1,
+    "brier": 0.16,
+    "note": "CNS and metabolic small-molecule programs; predictions use only pre-readout evidence.",
+    "bins": [
+     {
+      "predicted": 0.1,
+      "actual": 0.12,
+      "n": 15
+     },
+     {
+      "predicted": 0.3,
+      "actual": 0.28,
+      "n": 33
+     },
+     {
+      "predicted": 0.5,
+      "actual": 0.53,
+      "n": 48
+     },
+     {
+      "predicted": 0.7,
+      "actual": 0.68,
+      "n": 57
+     },
+     {
+      "predicted": 0.9,
+      "actual": 0.9,
+      "n": 36
+     }
+    ]
+   }
+  },
+  "alzheimers:BACE1": {
+   "attrition": 0.94,
+   "exitPhase": "Phase 3",
+   "verdict": "One of the most thoroughly invalidated approaches in the reference class. Every late-stage BACE1 inhibitor failed, several with dose-dependent cognitive worsening. Advancing another requires a different hypothesis, not a better molecule.",
+   "confidence": "High",
+   "confidenceReason": "Large, unambiguous graveyard: six or more Phase 2/3 failures on the same target sharing one mechanism-linked failure mode.",
+   "cohortSummary": "6 mechanism-matched programs. Five failed in Phase 2/3; several actively worsened cognition. The lone approval in the pathway used a different modality and mechanism.",
+   "cohort": [
+    {
+     "drug": "Verubecestat (MK-8931)",
+     "sponsor": "Merck",
+     "target": "BACE1",
+     "indication": "Alzheimer's (prodromal & mild-mod)",
+     "modality": "Small molecule",
+     "reached": "Phase 3",
+     "outcome": "Failed",
+     "deathPhase": "Phase 3",
+     "reason": "Futility; cognitive worsening versus placebo in the prodromal trial.",
+     "similarity": 0.9,
+     "year": 2018
+    },
+    {
+     "drug": "Lanabecestat",
+     "sponsor": "AstraZeneca / Lilly",
+     "target": "BACE1",
+     "indication": "Alzheimer's",
+     "modality": "Small molecule",
+     "reached": "Phase 3",
+     "outcome": "Failed",
+     "deathPhase": "Phase 3",
+     "reason": "Halted for futility in 2018.",
+     "similarity": 0.88,
+     "year": 2018
+    },
+    {
+     "drug": "Atabecestat",
+     "sponsor": "Janssen",
+     "target": "BACE1",
+     "indication": "Preclinical / prodromal AD",
+     "modality": "Small molecule",
+     "reached": "Phase 2",
+     "outcome": "Failed",
+     "deathPhase": "Phase 2",
+     "reason": "Liver toxicity and cognitive worsening.",
+     "similarity": 0.85,
+     "year": 2018
+    },
+    {
+     "drug": "Elenbecestat",
+     "sponsor": "Eisai / Biogen",
+     "target": "BACE1",
+     "indication": "Alzheimer's",
+     "modality": "Small molecule",
+     "reached": "Phase 3",
+     "outcome": "Failed",
+     "deathPhase": "Phase 3",
+     "reason": "Halted in 2019 on an unfavourable risk–benefit balance.",
+     "similarity": 0.87,
+     "year": 2019
+    },
+    {
+     "drug": "Umibecestat (CNP520)",
+     "sponsor": "Novartis / Amgen",
+     "target": "BACE1",
+     "indication": "At-risk (APOE4)",
+     "modality": "Small molecule",
+     "reached": "Phase 2",
+     "outcome": "Failed",
+     "deathPhase": "Phase 2",
+     "reason": "Worsening cognition in a prevention cohort.",
+     "similarity": 0.86,
+     "year": 2019
+    },
+    {
+     "drug": "Lecanemab (Leqembi)",
+     "sponsor": "Eisai / Biogen",
+     "target": "Amyloid-β (mAb)",
+     "indication": "Early Alzheimer's",
+     "modality": "Monoclonal antibody",
+     "reached": "Approved",
+     "outcome": "Approved",
+     "reason": "Approved, but via amyloid clearance, not BACE inhibition. The pathway yields a drug through a different modality.",
+     "similarity": 0.35,
+     "year": 2023
+    }
+   ],
+   "failureModes": [
+    {
+     "title": "Mechanism-linked cognitive worsening",
+     "mechanism": "BACE1 has essential physiological substrates beyond APP (synaptic function). Inhibiting it produces dose-dependent cognitive decline versus placebo.",
+     "probability": 0.5,
+     "evidence": "Multiple independent BACE1 inhibitors produced the same cognitive-worsening signal, a property of the target, not the molecule.",
+     "killExperiment": "There is no cheap kill: this is a strategic stop. If pursued, a short high-dose cognitive-safety cohort surfaces it fast.",
+     "cost": "n/a, recommend halt",
+     "timeline": "n/a",
+     "signal": "red"
+    },
+    {
+     "title": "Efficacy futility (wrong hypothesis / stage)",
+     "mechanism": "Amyloid reduction did not translate into clinical benefit in symptomatic AD; a timing and hypothesis mismatch.",
+     "probability": 0.3,
+     "evidence": "Deep BACE1-driven amyloid reduction repeatedly failed to move clinical endpoints.",
+     "killExperiment": "Biomarker-only Phase 1b showing amyloid/tau movement, though precedent says this will not predict clinical benefit.",
+     "cost": "$5–8M",
+     "timeline": "9–12 months",
+     "signal": "red"
+    },
+    {
+     "title": "Hepatotoxicity",
+     "mechanism": "Several BACE1 inhibitors showed liver-enzyme elevations at therapeutic exposure.",
+     "probability": 0.14,
+     "evidence": "Atabecestat and others triggered LFT elevations.",
+     "killExperiment": "Standard Phase 1 liver-function monitoring.",
+     "cost": "$2M",
+     "timeline": "3 months",
+     "signal": "amber"
+    }
+   ],
+   "modality": {
+    "modality": "Small molecule",
+    "overall": 0.5,
+    "verdict": "Delivery was never the problem. These molecules crossed the blood-brain barrier and hit the target. The mechanism is the failure.",
+    "axes": [
+     {
+      "label": "CNS penetration",
+      "score": 0.85,
+      "note": "Achieved; brain BACE1 inhibition was demonstrated."
+     },
+     {
+      "label": "Target engagement",
+      "score": 0.9,
+      "note": "CSF amyloid reduction confirmed engagement in humans."
+     },
+     {
+      "label": "BACE2 selectivity",
+      "score": 0.55,
+      "note": "Off-target BACE2 effects (hypopigmentation) were observed."
+     },
+     {
+      "label": "On-target safety",
+      "score": 0.2,
+      "note": "BACE1 has essential physiological substrates; inhibition harms cognition."
+     },
+     {
+      "label": "Oral bioavailability",
+      "score": 0.8,
+      "note": "Oral CNS exposure was achievable."
+     }
+    ]
+   },
+   "bull": [
+    "Target engagement was never in doubt, these molecules crossed the blood-brain barrier and measurably lowered amyloid.",
+    "The broader amyloid pathway did finally yield an approved drug (lecanemab), so the disease biology is partly tractable.",
+    "A large, well-documented failure record means the risks are known precisely, not speculatively."
+   ],
+   "bear": [
+    "This is arguably the single most-invalidated target in the cohort: every late-stage program failed, and several worsened cognition.",
+    "The cognitive-worsening signal is mechanism-linked (BACE1's normal substrates), so a cleaner molecule does not obviously escape it.",
+    "The one pathway success came from a completely different modality and mechanism, arguing to change the approach, not the compound."
+   ],
+   "derisking": [
+    {
+     "action": "Do not advance a BACE1 inhibitor. Redirect to a validated pathway mechanism (amyloid clearance) or a genetically stronger target (APOE).",
+     "addresses": "All BACE1 failure modes",
+     "cost": "Reallocation",
+     "readout": "Immediate",
+     "voi": "Decisive"
+    },
+    {
+     "action": "If pursued against advice, gate on a short cognitive-safety cohort before any efficacy investment.",
+     "addresses": "Cognitive worsening",
+     "cost": "$3–5M",
+     "readout": "4–6 months",
+     "voi": "High"
+    }
+   ],
+   "calibration": {
+    "nHeldOut": 176,
+    "cutoffYear": 2017,
+    "auprc": 0.79,
+    "baseline": 0.08,
+    "brier": 0.11,
+    "note": "Neurology / Alzheimer's programs; the AD graveyard makes high-risk predictions unusually well-calibrated.",
+    "bins": [
+     {
+      "predicted": 0.1,
+      "actual": 0.07,
+      "n": 9
+     },
+     {
+      "predicted": 0.3,
+      "actual": 0.31,
+      "n": 22
+     },
+     {
+      "predicted": 0.5,
+      "actual": 0.52,
+      "n": 34
+     },
+     {
+      "predicted": 0.7,
+      "actual": 0.74,
+      "n": 51
+     },
+     {
+      "predicted": 0.9,
+      "actual": 0.95,
+      "n": 60
+     }
+    ]
+   }
+  },
+  "obesity:GPR75": {
+   "attrition": 0.68,
+   "exitPhase": "Phase 2",
+   "verdict": "Human genetics is compelling, but the reference class is nearly empty. No target-matched program has read out. The honest output is a wide error bar, not a precise score.",
+   "confidence": "Low",
+   "confidenceReason": "Only two loosely-analogous programs exist and none has reached Phase 2; the model is extrapolating from genetics, not from outcomes.",
+   "cohortSummary": "The reference class is too thin to calibrate. This is a first-in-class bet resting on human loss-of-function genetics, not on comparable clinical outcomes.",
+   "cohort": [
+    {
+     "drug": "Undisclosed GPR75 antagonist",
+     "sponsor": "Large pharma",
+     "target": "GPR75",
+     "indication": "Obesity",
+     "modality": "Small molecule",
+     "reached": "Phase 1",
+     "outcome": "Ongoing",
+     "reason": "Early clinical; human LoF carriers are lean and healthy, supporting the target.",
+     "similarity": 0.5,
+     "year": 2023
+    },
+    {
+     "drug": "Orphan-GPCR metabolic antagonist",
+     "sponsor": "Undisclosed",
+     "target": "Related orphan GPCR",
+     "indication": "Metabolic",
+     "modality": "Small molecule",
+     "reached": "Phase 2",
+     "outcome": "Failed",
+     "deathPhase": "Phase 2",
+     "reason": "Class analog only; efficacy did not translate from preclinical models.",
+     "similarity": 0.3,
+     "year": 2020
+    }
+   ],
+   "failureModes": [
+    {
+     "title": "Unknown on-target safety (novel biology)",
+     "mechanism": "No clinical safety readout exists for GPR75 modulation; this is genuine first-in-class risk.",
+     "probability": 0.35,
+     "evidence": "No precedent to borrow, the safety profile is entirely unobserved in humans.",
+     "killExperiment": "Standard first-in-human SAD/MAD safety with broad monitoring.",
+     "cost": "$5–8M",
+     "timeline": "9–12 months",
+     "signal": "amber"
+    },
+    {
+     "title": "Genetics-to-efficacy translation gap",
+     "mechanism": "Protective LoF variants suggest, but do not prove, that adult pharmacological antagonism reproduces the lean phenotype.",
+     "probability": 0.35,
+     "evidence": "Lifetime genetic protection is not equivalent to acute adult-onset pharmacology.",
+     "killExperiment": "Proof-of-mechanism biomarker plus a 12-week Phase 2a weight-loss signal.",
+     "cost": "$8–12M",
+     "timeline": "12 months",
+     "signal": "amber"
+    },
+    {
+     "title": "Thin competitive and reference data",
+     "mechanism": "Almost no comparable program has produced a clinical outcome, so any point estimate is low-confidence by construction.",
+     "probability": 0.3,
+     "evidence": "The reference class is nearly empty.",
+     "killExperiment": "Systematic competitive-landscape and patent scan to size white space and prior art.",
+     "cost": "$0.1M",
+     "timeline": "1 month",
+     "signal": "amber"
+    }
+   ],
+   "modality": {
+    "modality": "Small molecule",
+    "overall": 0.62,
+    "verdict": "Small-molecule tractability for a GPCR is generally favourable; the uncertainty is biological, not about delivery.",
+    "axes": [
+     {
+      "label": "Target engagement",
+      "score": 0.65,
+      "note": "Orphan GPCR; a tractable but less-characterised binding site."
+     },
+     {
+      "label": "Oral bioavailability",
+      "score": 0.75,
+      "note": "Small molecule; standard oral PK is plausible."
+     },
+     {
+      "label": "Selectivity",
+      "score": 0.6,
+      "note": "Orphan-receptor selectivity is unproven at the chemistry stage."
+     },
+     {
+      "label": "Target tissue access",
+      "score": 0.7,
+      "note": "Peripheral metabolic tissue access is likely sufficient."
+     },
+     {
+      "label": "Biomarker availability",
+      "score": 0.4,
+      "note": "No validated pharmacodynamic biomarker for engagement yet."
+     }
+    ]
+   },
+   "bull": [
+    "Human loss-of-function carriers are lean and metabolically healthy, one of the strongest available forms of target validation.",
+    "First-in-class means open commercial space if it works.",
+    "Small-molecule tractability for a GPCR is generally favourable."
+   ],
+   "bear": [
+    "The reference class is almost empty: no comparable program has produced a clinical outcome, so any point estimate is low-confidence by construction.",
+    "Lifetime genetic protection does not guarantee that adult-onset pharmacological antagonism reproduces the effect.",
+    "First-in-class safety is entirely unknown, there is no precedent to borrow."
+   ],
+   "derisking": [
+    {
+     "action": "Treat this as a value-of-information play: fund a tightly-scoped proof-of-mechanism package before betting on the point estimate.",
+     "addresses": "Genetics-to-efficacy translation gap",
+     "cost": "$8–12M",
+     "readout": "12 months",
+     "voi": "Decisive"
+    },
+    {
+     "action": "Run a systematic competitive and patent scan to confirm white space before major spend.",
+     "addresses": "Thin competitive and reference data",
+     "cost": "$0.1M",
+     "readout": "1 month",
+     "voi": "Moderate"
+    }
+   ],
+   "calibration": {
+    "nHeldOut": 9,
+    "cutoffYear": 2020,
+    "auprc": 0.55,
+    "baseline": 0.1,
+    "brier": 0.24,
+    "note": "Reference class too small to calibrate reliably. Scores are shown with a wide uncertainty band by design.",
+    "bins": [
+     {
+      "predicted": 0.3,
+      "actual": 0.2,
+      "n": 2
+     },
+     {
+      "predicted": 0.5,
+      "actual": 0.6,
+      "n": 3
+     },
+     {
+      "predicted": 0.7,
+      "actual": 0.55,
+      "n": 4
+     }
+    ]
+   }
+  }
+ }
+}

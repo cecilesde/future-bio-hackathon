@@ -1,61 +1,74 @@
-# Drug repurposing engine on Amass
+# Prognosis
 
-Given an already-approved drug, surface indications OTHER than the one(s) it was
-approved for, grounded in structured clinical-trial, regulatory and mechanism data
-from the [Amass](https://platform.amass.tech) life-sciences API.
+Reference-class forecasting for drug-program attrition. Pick a disease, see the
+targets Open Targets associates with it, pick one, and get a forecast built from
+the historical programs most mechanistically like it: how they died, each
+failure mode, and the cheapest experiment that resolves it early. A second tab
+maps the AMASS clinical-trial landscape by disease.
 
-## What it does (and does not) claim
-
-This is **evidence-grounded hypothesis generation**, not a trained statistical
-predictor. An approved drug usually already has trials and literature for other
-indications that never reached approval. The engine aggregates those signals and
-(optionally) has an LLM reason over mechanism to rank them. It surfaces and ranks
-existing evidence; it does not compute a novel probability of success. A true
-predictive model (trained on drug-target-disease graphs) would be a separate build.
+Live: https://repurpose-engine-wine.vercel.app
 
 ## Architecture
 
-Two layers, deliberately separated:
-
-1. **Deterministic query engine** (`repurposing.py`) — pure Amass queries, no LLM.
-   Asserts only facts pulled straight from records. This is the "database query
-   model." It:
-   - resolves the drug in **DrugCore** (canonical name, mechanism/targets, brands);
-   - pulls the drug's authorizations from **RegulatoryCore** (the known baseline);
-   - pulls its trials from **TrialCore** and aggregates DISTINCT indications with
-     objective per-indication evidence (trial count, furthest phase, completions,
-     results posted, sample NCT IDs).
-
-2. **LLM reasoning layer** (`agent.py`) — an agentic Claude loop (Anthropic tool
-   use) that takes the deterministic evidence, separates novel candidates from the
-   already-approved and from noise, pulls extra literature on demand, and emits a
-   ranked report with rationale + calibrated confidence + citations.
-
-`amass_client.py` is the thin API client shared by both.
-
-## Two non-obvious correctness constraints (handled)
-
-- **Amass caps every query at 300 results and has NO pagination** (`offset`/`page`
-  are silently ignored). Recall is widened by unioning the drug name + its trade
-  names. The 300-cap residual is disclosed in each report's coverage note, never
-  silently truncated.
-- **Full-text match != the drug is the intervention.** A naive search for
-  `sildenafil` returns orthopedic trials that merely *exclude* patients on it, and
-  research-code synonyms (`HIP-0908`) collide with unrelated trials. Every trial is
-  therefore filtered to those where the drug actually appears in the intervention
-  fields before its conditions are counted.
-
-## Usage
-
-```bash
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env            # then put your amass_ key in .env
-
-python main.py "semaglutide"            # deterministic evidence table
-python main.py "sildenafil" --json      # machine-readable JSON (for a future UI)
-python main.py "semaglutide" --agent    # + LLM ranking (needs ANTHROPIC_API_KEY)
+```
+Disease ──Open Targets──> Targets (association scores) ──> Selected target
+                                                              │
+                        ┌─────────────────────────────────────┘
+                        v
+        Reference cohort (AMASS trials, patents, literature)
+                        │
+                        v
+     Forecast: attrition risk · failure modes · kill experiments ·
+               modality feasibility · calibration backtest
 ```
 
-The `--json` output is the intended contract for a future dashboard: type a drug,
-get a structured indications table.
+- **Targets are generated from Open Targets** (`pipeline/opentargets.py`), not
+  hand-picked: the GraphQL Platform API returns each disease's associated
+  targets with real association scores and evidence breakdown.
+- **Trial landscape** is the harvested AMASS `trialcore` cache stratified by
+  disease (`pipeline/trial_taxonomy.py`).
+- The **forecast reports themselves are still authored/illustrative** placeholders
+  for the agentic model (AMASS + Elicit + reasoning) that produces the attrition
+  score. That model is the next build; the data backbone around it is real.
+
+## Backend (Supabase)
+
+All UI data is served from Supabase (`pg_*` tables, public-read RLS):
+
+| Table | Contents |
+|-------|----------|
+| `pg_diseases` | diseases offered in the UI + their EFO/MONDO id |
+| `pg_targets` | Open Targets targets per disease, ranked, `modeled` flag |
+| `pg_reports` | authored forecast reports (jsonb) |
+| `pg_trials` | harvested AMASS trials (deduped) |
+| `pg_trial_disease` | trial to (area, disease) map |
+| `pg_trial_disease_stats` | aggregate distribution the landscape tab reads |
+| `pg_trial_meta` | header totals + caveat |
+
+The Next.js app reads these via PostgREST (`web/src/lib/server-data.ts`) in a
+server component; nothing computes at request time beyond the query.
+
+## Refreshing the data
+
+```bash
+source .venv/bin/activate
+# 1. (optional) re-harvest AMASS trials, needs AMASS_API_KEY + credits
+python pipeline/pull.py
+# 2. re-author reports if changed, then dump to seed:
+cd web && npx tsx scripts/dump-forecast.ts > ../data/seed/forecast.json && cd ..
+# 3. load everything into Supabase (Open Targets + reports + trials)
+python pipeline/load_prognosis.py
+# 4. the UI (force-dynamic) picks up the new data on next request
+```
+
+`pipeline/stratify_trials.py` writes the stratification seed JSON for inspection;
+the live app uses the Supabase copy.
+
+## Web app
+
+```bash
+cd web && npm install && npm run dev   # needs SUPABASE_URL + SUPABASE_ANON_KEY
+```
+
+Requires `SUPABASE_URL`, `SUPABASE_ANON_KEY` (web) and, for the loader,
+`SUPABASE_SERVICE_ROLE_KEY`, `AMASS_API_KEY` (root `.env`). See `.env.example`.

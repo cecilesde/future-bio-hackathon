@@ -34,18 +34,19 @@ export type Signal = "green" | "amber" | "red";
 export interface TargetAssoc {
   symbol: string;
   name: string;
-  // Open Targets-style overall association score, 0-1.
+  // Open Targets overall association score, 0-1.
   association: number;
   // Which evidence streams drive the association (chips under each target).
   evidence: string[];
-  // Short editorial note shown when the target is the current selection.
-  note: string;
+  // Optional editorial note (not provided by Open Targets).
+  note?: string;
 }
 
 export interface Disease {
   id: string;
   name: string;
   synonym: string;
+  efoId?: string;
   targets: TargetAssoc[];
 }
 

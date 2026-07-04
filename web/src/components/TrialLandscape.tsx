@@ -2,19 +2,19 @@
 
 import { useMemo, useState } from "react";
 import {
-  distribution,
-  totalDiseases,
   PHASE_COLORS,
   PHASE_LABELS,
   type AreaStrat,
   type DiseaseStrat,
+  type TrialDistribution,
 } from "@/lib/trials";
 
 const PHASE_KEYS = ["P1", "P2", "P3", "P4", "NA"] as const;
 const fmt = (n: number) => n.toLocaleString();
 
-export default function TrialLandscape() {
+export default function TrialLandscape({ distribution }: { distribution: TrialDistribution }) {
   const { meta, areas } = distribution;
+  const totalDiseases = useMemo(() => areas.reduce((s, a) => s + a.diseases.length, 0), [areas]);
   const [mode, setMode] = useState<"area" | "flat">("area");
   const [selected, setSelected] = useState(areas[0].area);
 

@@ -1,8 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { DISEASES, getReport } from "@/lib/data";
-import type { TargetAssoc } from "@/lib/types";
+import type { Disease, Report, TargetAssoc } from "@/lib/types";
 import Swimlanes from "./Swimlanes";
 import {
   VerdictBand,
@@ -15,13 +14,27 @@ import {
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 
-export default function Prognosis() {
-  const [diseaseId, setDiseaseId] = useState(DISEASES[0].id);
-  const [symbol, setSymbol] = useState("GLP1R");
+export default function Prognosis({
+  diseases,
+  reports,
+}: {
+  diseases: Disease[];
+  reports: Record<string, Report>;
+}) {
+  const getReport = (d: string, s: string): Report | null => reports[`${d}:${s}`] ?? null;
+  // default to the highest-association target that has a modeled forecast
+  const defaultSymbol = (d: Disease) => {
+    if (!d?.targets?.length) return "";
+    const sorted = [...d.targets].sort((a, b) => b.association - a.association);
+    return (sorted.find((t) => getReport(d.id, t.symbol)) ?? sorted[0]).symbol;
+  };
+
+  const [diseaseId, setDiseaseId] = useState(diseases[0].id);
+  const [symbol, setSymbol] = useState(() => defaultSymbol(diseases[0]));
 
   const disease = useMemo(
-    () => DISEASES.find((d) => d.id === diseaseId)!,
-    [diseaseId]
+    () => diseases.find((d) => d.id === diseaseId)!,
+    [diseaseId, diseases]
   );
   const targets = useMemo(
     () => [...disease.targets].sort((a, b) => b.association - a.association),
@@ -32,12 +45,8 @@ export default function Prognosis() {
 
   function pickDisease(id: string) {
     setDiseaseId(id);
-    const d = DISEASES.find((x) => x.id === id)!;
-    // default to the highest-association target that has a modeled forecast
-    const modeled = [...d.targets]
-      .sort((a, b) => b.association - a.association)
-      .find((t) => getReport(id, t.symbol));
-    setSymbol((modeled ?? d.targets[0]).symbol);
+    const d = diseases.find((x) => x.id === id)!;
+    setSymbol(defaultSymbol(d));
   }
 
   return (
@@ -62,7 +71,7 @@ export default function Prognosis() {
           <div>
             <label className="eyebrow block mb-2">Disease</label>
             <div className="flex flex-col gap-2">
-              {DISEASES.map((d) => {
+              {diseases.map((d) => {
                 const on = d.id === diseaseId;
                 return (
                   <button

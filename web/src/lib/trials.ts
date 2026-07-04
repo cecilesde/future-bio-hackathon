@@ -1,4 +1,5 @@
-import raw from "./trial-distribution.json";
+// Types + shared display constants for the trial-landscape tab. The data itself
+// is loaded from Supabase in server-data.ts (getDistribution).
 
 export interface DiseaseStrat {
   disease: string;
@@ -6,7 +7,7 @@ export interface DiseaseStrat {
   phases: { P1: number; P2: number; P3: number; P4: number; NA: number };
   status: { completed: number; ongoing: number; stopped: number; other: number };
   enrollment: number;
-  topInterventions: { name: string; n: number }[];
+  topInterventions?: { name: string; n: number }[];
 }
 
 export interface AreaStrat {
@@ -28,8 +29,6 @@ export interface TrialDistribution {
   areas: AreaStrat[];
 }
 
-export const distribution = raw as TrialDistribution;
-
 export const PHASE_LABELS: Record<keyof DiseaseStrat["phases"], string> = {
   P1: "Phase 1",
   P2: "Phase 2",
@@ -46,8 +45,3 @@ export const PHASE_COLORS: Record<keyof DiseaseStrat["phases"], string> = {
   P4: "#8adcbb",
   NA: "#2b3733",
 };
-
-export const totalDiseases = distribution.areas.reduce(
-  (s, a) => s + a.diseases.length,
-  0
-);
