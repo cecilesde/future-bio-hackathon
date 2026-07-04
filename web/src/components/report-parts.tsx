@@ -42,7 +42,7 @@ export function VerdictBand({ report }: { report: Report }) {
           <div className="w-px self-stretch" style={{ background: "var(--line-2)" }} />
           <div className="flex flex-col justify-center gap-3">
             <div>
-              <div className="eyebrow">Most likely exit</div>
+              <div className="eyebrow">Most likely time of failure</div>
               <div className="serif text-[26px] leading-none mt-1">{report.exitPhase}</div>
             </div>
             <div>

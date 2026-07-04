@@ -120,7 +120,7 @@ export default function Swimlanes({
               className="absolute top-0 mono text-[10px] t-accent -translate-x-1/2 whitespace-nowrap"
               style={{ left: `${((phaseIdx(exitPhase) + 0.5) / cols) * 100}%` }}
             >
-              predicted exit
+              likely failure
             </div>
           </div>
 
