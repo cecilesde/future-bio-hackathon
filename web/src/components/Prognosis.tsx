@@ -19,6 +19,12 @@ import {
 } from "./report-parts";
 import { computeAttrition, type AttritionScore } from "@/lib/attrition";
 
+function riskColor(x: number): string {
+  if (x >= 0.66) return "var(--red)";
+  if (x >= 0.4) return "var(--amber)";
+  return "var(--green)";
+}
+
 // Map a typed disease label to an authored (modeled) disease id, or null.
 function resolveDiseaseId(label: string | undefined): string | null {
   if (!label) return null;
@@ -464,8 +470,9 @@ function DrugDiscoveryPanel({
         </button>
       </div>
       <p className="text-[11.5px] t-muted mt-2 leading-snug max-w-[86ch]">
-        No target needed. Pick a drug and the model auto-selects the best target for it (lowest
-        attrition of its candidate mechanisms), then runs the full dashboard.
+        No target needed. Each drug gets a quick target-free attrition estimate (ranked lowest first);
+        pick one to run its full dashboard. The estimate is a fast screen; the dashboard is the
+        authoritative number.
       </p>
       {error && <p className="mono text-[12px] mt-3" style={{ color: "var(--red)" }}>{error}</p>}
       {drugs && drugs.length === 0 && !loading && (
@@ -499,15 +506,25 @@ function DrugDiscoveryPanel({
                 </div>
                 <p className="text-[12.5px] t-muted mt-1 leading-snug">{d.rationale}</p>
               </div>
-              {d.drug && (
-                <button
-                  onClick={() => onPick(d.drug!)}
-                  className="mono text-[11px] px-2.5 py-1 rounded flex-none"
-                  style={{ border: "1px solid var(--accent)", color: "var(--accent)" }}
-                >
-                  forecast →
-                </button>
-              )}
+              <div className="flex-none flex items-center gap-3">
+                {typeof d.attrition === "number" && (
+                  <div className="text-right">
+                    <div className="mono text-[16px] tabular-nums leading-none" style={{ color: riskColor(d.attrition) }}>
+                      {Math.round(d.attrition * 100)}%
+                    </div>
+                    <div className="mono t-muted" style={{ fontSize: 8.5 }}>est. attrition</div>
+                  </div>
+                )}
+                {d.drug && (
+                  <button
+                    onClick={() => onPick(d.drug!)}
+                    className="mono text-[11px] px-2.5 py-1 rounded"
+                    style={{ border: "1px solid var(--accent)", color: "var(--accent)" }}
+                  >
+                    forecast →
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>

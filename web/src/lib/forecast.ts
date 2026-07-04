@@ -12,6 +12,9 @@
 import {
   computeAttrition,
   computeAttritionTargetFree,
+  attritionMath,
+  areaOf,
+  phaseOf,
   type AttritionScore,
 } from "./attrition";
 import { extract } from "./llm";
@@ -531,8 +534,50 @@ export function rawFailFraction(cands: CohortCandidate[]): number | null {
   return decided ? failed / decided : null;
 }
 
-// void the unused-warning on the step-2 helpers until the ranked table lands
-void modalityPrior;
+// Cheap efficacy proxy from a drug's furthest development stage (no LLM), for the
+// disease-only ranked table. Approved/late-stage => stronger; anchored on the
+// same 0.3 neutral as EFFICACY_TO_SCORE.
+function efficacyProxy(maxPhase: number | null): number {
+  if (maxPhase == null) return 0.3;
+  if (maxPhase >= 4) return 0.7;
+  if (maxPhase >= 3) return 0.6;
+  if (maxPhase >= 2) return 0.45;
+  return 0.3;
+}
+
+export interface DrugAttritionScore {
+  attrition: number;
+  efficacyProxy: number;
+}
+
+// Rank a set of drugs for a disease by a CHEAP target-free attrition (no LLM):
+// one shared disease cohort + a phase-based efficacy proxy + modality prior. The
+// full generateForecastTargetFree is the authoritative number on selection.
+export async function scoreDrugsTargetFree(
+  diseaseName: string,
+  drugs: Drug[]
+): Promise<Map<string, DrugAttritionScore>> {
+  const disease = await resolveDisease(diseaseName).catch(() => null);
+  const efoId = disease?.id ?? null;
+  const cands = efoId ? await diseaseCohortCandidates(efoId).catch(() => [] as CohortCandidate[]) : [];
+  const sharedFail = rawFailFraction(cands);
+  const area = areaOf(diseaseName);
+
+  const out = new Map<string, DrugAttritionScore>();
+  for (const drug of drugs) {
+    const proxy = efficacyProxy(drug.max_phase);
+    const { attrition } = attritionMath({
+      area,
+      phase: phaseOf(drug.max_phase),
+      association: proxy,
+      modalityOverall: modalityPrior(drug.molecule_type),
+      cohortFailFraction: sharedFail,
+      leadMaxPhase: drug.max_phase,
+    });
+    out.set(drug.chembl_id || drug.name, { attrition, efficacyProxy: proxy });
+  }
+  return out;
+}
 
 // ---- efficacy-evidence stage: the target-free replacement for the genetic term ----
 export type EfficacyLevel = "strong" | "moderate" | "weak" | "none";

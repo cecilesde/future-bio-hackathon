@@ -162,6 +162,7 @@ export interface DiscoveredDrug {
   evidenceSources: string[]; // e.g. ["Open Targets", "literature", "patent"]
   chemblId?: string;
   drug?: Drug; // resolved pg_drugs record (chembl_id/max_phase/molecule_type) when found
+  attrition?: number; // cheap target-free attrition estimate (0-1), for ranking
 }
 
 export interface Patent {

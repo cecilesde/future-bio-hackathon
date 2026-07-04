@@ -14,6 +14,7 @@ import { searchPatents } from "./amass";
 import { searchPapers, type ElicitPaper } from "./elicit";
 import { resolveDisease, diseaseDrugCandidates, type DiseaseDrugRow } from "./opentargets";
 import { keyOf, readCache, writeCache } from "./evidence";
+import { scoreDrugsTargetFree } from "./forecast";
 import { restQuery } from "./supabase";
 import type { DiscoveredDrug, Drug, Patent } from "./types";
 
@@ -59,7 +60,7 @@ function paperLines(papers: ElicitPaper[]): string {
 }
 
 export async function discoverDrugs(diseaseName: string): Promise<DiscoveredDrug[]> {
-  const cacheKey = keyOf("discovery", diseaseName);
+  const cacheKey = keyOf("discovery_v2", diseaseName); // v2: + per-drug attrition
   const cached = await readCache<DiscoveredDrug>(cacheKey);
   if (cached) return cached;
 
@@ -129,16 +130,25 @@ export async function discoverDrugs(diseaseName: string): Promise<DiscoveredDrug
     });
   }
 
-  // rank: approved first, then by max_phase desc, then evidence-source count
+  // cheap target-free attrition per drug (shared disease cohort, no LLM), for the table
+  const scored = await scoreDrugsTargetFree(
+    diseaseName,
+    out.map((d) => d.drug).filter((d): d is Drug => !!d)
+  ).catch(() => new Map<string, { attrition: number }>());
+  for (const d of out) {
+    const key = d.drug?.chembl_id || d.drug?.name;
+    if (key && scored.has(key)) d.attrition = scored.get(key)!.attrition;
+  }
+
+  // rank by attrition ascending (lowest = most promising); undefined last, then
+  // approved-first as a tiebreak
   out.sort((a, b) => {
-    if ((a.status === "approved" ? 1 : 0) !== (b.status === "approved" ? 1 : 0))
-      return a.status === "approved" ? -1 : 1;
-    const pa = a.drug?.max_phase ?? -1;
-    const pb = b.drug?.max_phase ?? -1;
-    if (pb !== pa) return pb - pa;
-    return b.evidenceSources.length - a.evidenceSources.length;
+    const aa = a.attrition ?? Infinity;
+    const ba = b.attrition ?? Infinity;
+    if (aa !== ba) return aa - ba;
+    return (a.status === "approved" ? 0 : 1) - (b.status === "approved" ? 0 : 1);
   });
 
-  if (out.length) await writeCache(cacheKey, "discovery", diseaseName, out);
+  if (out.length) await writeCache(cacheKey, "discovery_v2", diseaseName, out);
   return out;
 }
