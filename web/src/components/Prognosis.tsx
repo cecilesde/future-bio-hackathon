@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { Disease, Report, TargetAssoc, Paper } from "@/lib/types";
+import type { Disease, Report, TargetAssoc, Paper, Drug } from "@/lib/types";
 import Swimlanes from "./Swimlanes";
+import DrugInput from "./DrugInput";
 import {
   VerdictBand,
   FailureModes,
@@ -34,6 +35,7 @@ export default function Prognosis({
 
   const [diseaseId, setDiseaseId] = useState(diseases[0].id);
   const [symbol, setSymbol] = useState(() => defaultSymbol(diseases[0]));
+  const [drugs, setDrugs] = useState<Drug[]>([]);
 
   const disease = useMemo(
     () => diseases.find((d) => d.id === diseaseId)!,
@@ -117,6 +119,20 @@ export default function Prognosis({
               ))}
             </div>
           </div>
+        </div>
+
+        {/* drug input (third input) */}
+        <div className="mt-5 pt-5 hairline">
+          <label className="eyebrow block mb-2">
+            Drugs · optional · condition the forecast on specific compounds
+          </label>
+          <DrugInput selected={drugs} onChange={setDrugs} />
+          <p className="text-[11.5px] t-muted mt-2 leading-snug max-w-[80ch]">
+            Search approved or experimental drugs (ChEMBL, 16,784 compounds). Selecting a drug
+            will condition the attrition forecast: a compound already in Phase 3 carries very
+            different risk from a preclinical one. The scoring model that consumes this is in
+            progress.
+          </p>
         </div>
       </section>
 

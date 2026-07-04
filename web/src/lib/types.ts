@@ -112,6 +112,14 @@ export interface Calibration {
   note: string;
 }
 
+export interface Drug {
+  chembl_id: string;
+  name: string;
+  max_phase: number | null; // 4 = approved, 1-3 = experimental/clinical
+  molecule_type: string | null;
+  first_approval: number | null;
+}
+
 export interface Paper {
   title: string;
   authors: string[];

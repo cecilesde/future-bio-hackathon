@@ -23,6 +23,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from supabase import create_client
 
+import chembl
 import elicit
 import opentargets as ot
 import trial_taxonomy as tax
@@ -193,6 +194,24 @@ def load_literature(sb, forecast):
         print(f"  {key}: {len(papers)} papers")
     if rows:
         sb.table("pg_literature").upsert(rows, on_conflict="disease_id,symbol").execute()
+
+
+def load_drugs(sb):
+    """Load the ChEMBL drug universe (approved + experimental) into pg_drugs."""
+    rows, total = [], 0
+    for d in chembl.iter_drugs():
+        if not d["name"]:
+            continue
+        rows.append(d)
+        if len(rows) >= 1000:
+            sb.table("pg_drugs").upsert(rows, on_conflict="chembl_id").execute()
+            total += len(rows)
+            rows = []
+            print(f"  ... {total} drugs")
+    if rows:
+        sb.table("pg_drugs").upsert(rows, on_conflict="chembl_id").execute()
+        total += len(rows)
+    print(f"  loaded {total} drugs")
 
 
 def main():
