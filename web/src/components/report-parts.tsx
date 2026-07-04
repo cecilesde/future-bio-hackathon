@@ -5,6 +5,7 @@ import type {
   DeriskingStep,
   Calibration,
   Signal,
+  Paper,
 } from "@/lib/types";
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
@@ -278,7 +279,7 @@ export function CalibrationPanel({ cal }: { cal: Calibration }) {
   return (
     <section>
       <SectionHead
-        n="05"
+        n="06"
         title="Calibration backtest"
         sub="The score is only worth trusting if it was right on history it never saw. Predictions here use only evidence available before each program read out."
       />
@@ -351,6 +352,59 @@ function Stat({
       </div>
       {sub && <div className="mono text-[10px] t-muted mt-0.5">{sub}</div>}
     </div>
+  );
+}
+
+/* ------------------------------------------------------------- literature */
+function formatAuthors(a: string[]): string {
+  if (!a?.length) return "";
+  return a.length <= 2 ? a.join(", ") : `${a[0]} et al.`;
+}
+
+export function LiteraturePanel({ papers }: { papers: Paper[] }) {
+  if (!papers?.length) return null;
+  return (
+    <section>
+      <SectionHead
+        n="05"
+        title="Literature"
+        sub="The evidence base the forecast reasons over: the most relevant papers for this target-disease pair, retrieved live from Elicit's 138M-paper corpus."
+      />
+      <div className="panel divide-y" style={{ borderColor: "var(--line-2)" }}>
+        {papers.map((p, i) => {
+          const href = p.doi ? `https://doi.org/${p.doi}` : p.urls?.[0];
+          return (
+            <div key={i} className="p-4 grid gap-x-4 gap-y-1 md:grid-cols-[1fr_auto] items-start">
+              <div className="min-w-0">
+                {href ? (
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[14.5px] t-dim leading-snug hover:underline"
+                    style={{ textDecorationColor: "var(--accent)" }}
+                  >
+                    {p.title}
+                  </a>
+                ) : (
+                  <span className="text-[14.5px] t-dim leading-snug">{p.title}</span>
+                )}
+                <p className="text-[12px] t-muted mt-1">
+                  {formatAuthors(p.authors)}
+                  {p.year ? ` · ${p.year}` : ""}
+                  {p.venue ? ` · ${p.venue}` : ""}
+                </p>
+              </div>
+              {p.citedByCount != null && (
+                <div className="mono text-[11px] t-muted md:text-right flex-none whitespace-nowrap">
+                  {p.citedByCount.toLocaleString()} cites
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 

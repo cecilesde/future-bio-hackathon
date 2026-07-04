@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Prognosis from "./Prognosis";
 import TrialLandscape from "./TrialLandscape";
-import type { Disease, Report } from "@/lib/types";
+import type { Disease, Report, Paper } from "@/lib/types";
 import type { TrialDistribution } from "@/lib/trials";
 
 type Tab = "forecast" | "landscape";
@@ -11,10 +11,12 @@ type Tab = "forecast" | "landscape";
 export default function Shell({
   diseases,
   reports,
+  literature,
   distribution,
 }: {
   diseases: Disease[];
   reports: Record<string, Report>;
+  literature: Record<string, Paper[]>;
   distribution: TrialDistribution;
 }) {
   const [tab, setTab] = useState<Tab>("forecast");
@@ -59,7 +61,7 @@ export default function Shell({
       </div>
 
       {tab === "forecast" ? (
-        <Prognosis diseases={diseases} reports={reports} />
+        <Prognosis diseases={diseases} reports={reports} literature={literature} />
       ) : (
         <TrialLandscape distribution={distribution} />
       )}

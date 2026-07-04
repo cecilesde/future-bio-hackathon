@@ -112,6 +112,18 @@ export interface Calibration {
   note: string;
 }
 
+export interface Paper {
+  title: string;
+  authors: string[];
+  year: number | null;
+  abstract: string | null;
+  doi: string | null;
+  pmid: string | null;
+  venue: string | null;
+  citedByCount: number | null;
+  urls: string[];
+}
+
 export interface Report {
   attrition: number; // 0-1 probability of failure before approval
   exitPhase: Phase; // most likely stage of failure

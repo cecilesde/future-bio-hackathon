@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { Disease, Report, TargetAssoc } from "@/lib/types";
+import type { Disease, Report, TargetAssoc, Paper } from "@/lib/types";
 import Swimlanes from "./Swimlanes";
 import {
   VerdictBand,
@@ -10,6 +10,7 @@ import {
   Adversarial,
   Derisking,
   CalibrationPanel,
+  LiteraturePanel,
 } from "./report-parts";
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
@@ -17,9 +18,11 @@ const pct = (x: number) => `${Math.round(x * 100)}%`;
 export default function Prognosis({
   diseases,
   reports,
+  literature,
 }: {
   diseases: Disease[];
   reports: Record<string, Report>;
+  literature: Record<string, Paper[]>;
 }) {
   const getReport = (d: string, s: string): Report | null => reports[`${d}:${s}`] ?? null;
   // default to the highest-association target that has a modeled forecast
@@ -165,6 +168,7 @@ export default function Prognosis({
           <ModalityPanel modality={report.modality} />
           <Adversarial bull={report.bull} bear={report.bear} />
           <Derisking steps={report.derisking} />
+          <LiteraturePanel papers={literature[`${diseaseId}:${symbol}`] ?? []} />
           <CalibrationPanel cal={report.calibration} />
         </div>
       ) : (

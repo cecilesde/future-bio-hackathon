@@ -1,5 +1,5 @@
 import { restQuery } from "./supabase";
-import type { Disease, Report, TargetAssoc } from "./types";
+import type { Disease, Report, TargetAssoc, Paper } from "./types";
 import type { TrialDistribution, DiseaseStrat } from "./trials";
 
 interface TargetRow {
@@ -57,6 +57,16 @@ export async function getReports(): Promise<Record<string, Report>> {
   );
   const out: Record<string, Report> = {};
   for (const r of rows) out[`${r.disease_id}:${r.symbol}`] = r.report;
+  return out;
+}
+
+// ---- Literature: Elicit papers per (disease, target) ----
+export async function getLiterature(): Promise<Record<string, Paper[]>> {
+  const rows = await restQuery<{ disease_id: string; symbol: string; papers: Paper[] }>(
+    "pg_literature?select=disease_id,symbol,papers"
+  );
+  const out: Record<string, Paper[]> = {};
+  for (const r of rows) out[`${r.disease_id}:${r.symbol}`] = r.papers ?? [];
   return out;
 }
 

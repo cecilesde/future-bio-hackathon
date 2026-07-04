@@ -23,8 +23,12 @@ from pathlib import Path
 from dotenv import load_dotenv
 from supabase import create_client
 
+import elicit
 import opentargets as ot
 import trial_taxonomy as tax
+
+PAPER_FIELDS = ("title", "authors", "year", "abstract", "doi", "pmid", "venue",
+                "citedByCount", "urls")
 
 ROOT = Path(tax.ROOT)
 SEED = ROOT / "data" / "seed" / "forecast.json"
@@ -168,11 +172,36 @@ def load_trials(sb):
     print(f"  stats: {len(stat_rows)} area-disease rows; meta loaded")
 
 
+def load_literature(sb, forecast):
+    """Elicit literature for each modeled (disease, target) pair -> pg_literature.
+    Skipped silently if ELICIT_API_KEY is absent."""
+    if not os.environ.get("ELICIT_API_KEY"):
+        print("  (no ELICIT_API_KEY; skipping literature)")
+        return
+    dnames = {d["id"]: d["name"] for d in forecast["diseases"]}
+    rows = []
+    for key in forecast["reports"]:
+        did, sym = key.split(":", 1)
+        q = f"{sym} as a therapeutic target for {dnames.get(did, did)}: clinical trial outcomes, efficacy and safety"
+        try:
+            res = elicit.search_papers(q, max_results=8)
+        except Exception as e:
+            print(f"  ! elicit failed for {key}: {e}")
+            continue
+        papers = [{k: p.get(k) for k in PAPER_FIELDS} for p in res.get("papers", [])]
+        rows.append({"disease_id": did, "symbol": sym, "papers": papers})
+        print(f"  {key}: {len(papers)} papers")
+    if rows:
+        sb.table("pg_literature").upsert(rows, on_conflict="disease_id,symbol").execute()
+
+
 def main():
     sb = client()
     forecast = json.loads(SEED.read_text())
     print("== forecast (Open Targets + authored reports) ==")
     load_forecast(sb, forecast)
+    print("== literature (Elicit) ==")
+    load_literature(sb, forecast)
     print("== trials (AMASS harvest) ==")
     load_trials(sb)
     print("done.")

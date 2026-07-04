@@ -1,19 +1,25 @@
 import Shell from "@/components/Shell";
-import { getDiseases, getReports, getDistribution } from "@/lib/server-data";
+import { getDiseases, getReports, getLiterature, getDistribution } from "@/lib/server-data";
 
 // Fetch from Supabase per request (no build-time prerender coupling).
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
-  const [diseases, reports, distribution] = await Promise.all([
+  const [diseases, reports, literature, distribution] = await Promise.all([
     getDiseases(),
     getReports(),
+    getLiterature(),
     getDistribution(),
   ]);
 
   return (
     <main>
-      <Shell diseases={diseases} reports={reports} distribution={distribution} />
+      <Shell
+        diseases={diseases}
+        reports={reports}
+        literature={literature}
+        distribution={distribution}
+      />
       <footer className="max-w-[1120px] mx-auto px-4 sm:px-6 py-8 hairline">
         <div className="flex flex-wrap items-center justify-between gap-3 mono text-[11px] t-muted">
           <span>PROGNOSIS · reference-class attrition forecasting</span>
