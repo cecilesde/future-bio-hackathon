@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { Disease, Report, Paper, Patent, Drug } from "@/lib/types";
+import type { Disease, Report, Paper, Patent, Drug, DiscoveredDrug } from "@/lib/types";
 import Swimlanes from "./Swimlanes";
 import DrugInput from "./DrugInput";
 import PickerInput, { type PickItem } from "./PickerInput";
@@ -44,6 +44,15 @@ interface LiveForecast {
   };
   cached?: boolean;
   subjectKey: string; // the subject this result was computed for (client-tagged)
+  autoTarget?: string; // set when the target was auto-selected by the tournament
+  candidateTargets?: CandidateTargetScore[];
+}
+
+interface CandidateTargetScore {
+  symbol: string;
+  attrition: number | null;
+  association: number;
+  resolved: boolean;
 }
 
 interface LivePending {
@@ -111,6 +120,60 @@ export default function Prognosis({
     }
   }
 
+  // ---- disease-only drug discovery ----
+  const [discovered, setDiscovered] = useState<{ key: string; drugs: DiscoveredDrug[] } | null>(null);
+  const [discovering, setDiscovering] = useState(false);
+  const [discoverError, setDiscoverError] = useState("");
+  const discoveredForCurrent = discovered && discovered.key === diseaseName ? discovered.drugs : null;
+
+  async function runDiscovery() {
+    setDiscovering(true);
+    setDiscoverError("");
+    const dz = diseaseName;
+    try {
+      const res = await fetch("/api/discover-drugs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ disease: dz }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "discovery failed");
+      setDiscovered({ key: dz, drugs: (data.drugs ?? []) as DiscoveredDrug[] });
+    } catch (e) {
+      setDiscoverError(String(e instanceof Error ? e.message : e));
+    } finally {
+      setDiscovering(false);
+    }
+  }
+
+  // ---- (disease + drug, no target) -> auto-target tournament forecast ----
+  const [tourn, setTourn] = useState<{ drugKey: string; state: "loading" | "error"; error: string } | null>(null);
+  const currentDrugKey = drugs[0] ? drugs[0].chembl_id || drugs[0].name : "";
+  const tournForCurrent = tourn && tourn.drugKey === currentDrugKey ? tourn : null;
+
+  async function runTournament(drug: Drug) {
+    const dKey = drug.chembl_id || drug.name;
+    setDrugs([drug]);
+    setTargetSel(null);
+    setTourn({ drugKey: dKey, state: "loading", error: "" });
+    try {
+      const res = await fetch("/api/forecast-by-drug", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ disease: diseaseName, drug }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "forecast failed");
+      const winner = String(data.autoTarget ?? "").toUpperCase();
+      const winnerKey = `${diseaseName}|${winner}|${drug.chembl_id || ""}`;
+      setLive({ ...(data as LiveForecast), subjectKey: winnerKey });
+      setTargetSel({ id: winner, label: winner });
+      setTourn(null);
+    } catch (e) {
+      setTourn({ drugKey: dKey, state: "error", error: String(e instanceof Error ? e.message : e) });
+    }
+  }
+
   return (
     <div className="max-w-[1120px] mx-auto px-4 sm:px-6">
       <Header />
@@ -175,6 +238,18 @@ export default function Prognosis({
         onSelectTarget={(s) => setTargetSel({ id: s, label: s })}
       />
 
+      {/* disease-only drug discovery */}
+      {diseaseName && drugs.length === 0 && (
+        <DrugDiscoveryPanel
+          diseaseName={diseaseName}
+          drugs={discoveredForCurrent}
+          loading={discovering}
+          error={discoverError}
+          onRun={runDiscovery}
+          onPick={runTournament}
+        />
+      )}
+
       {/* selection summary */}
       {(report || liveForCurrent) && (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-5">
@@ -204,6 +279,13 @@ export default function Prognosis({
         />
       ) : liveForCurrent ? (
         <>
+          {liveForCurrent.autoTarget && (
+            <AutoTargetBanner
+              winner={liveForCurrent.autoTarget}
+              candidates={liveForCurrent.candidateTargets ?? []}
+              drug={drugs[0]?.name ?? ""}
+            />
+          )}
           <LiveBanner live={liveForCurrent} />
           <ReportView
             report={liveForCurrent.report}
@@ -214,6 +296,8 @@ export default function Prognosis({
             keyId={`live:${subjectKey}`}
           />
         </>
+      ) : tournForCurrent ? (
+        <TournamentStatus state={tournForCurrent.state} error={tournForCurrent.error} drug={drugs[0]?.name ?? ""} />
       ) : (
         <LiveForecastPrompt
           diseaseName={diseaseName}
@@ -356,6 +440,155 @@ function LiveForecastPrompt({
           Resolving target · pulling cohort · curating analogues · scoring modality · computing
           attrition · writing verdict
         </p>
+      )}
+    </div>
+  );
+}
+
+function DrugDiscoveryPanel({
+  diseaseName,
+  drugs,
+  loading,
+  error,
+  onRun,
+  onPick,
+}: {
+  diseaseName: string;
+  drugs: DiscoveredDrug[] | null;
+  loading: boolean;
+  error: string;
+  onRun: () => void;
+  onPick: (drug: Drug) => void;
+}) {
+  return (
+    <section className="panel p-5 mb-8">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div className="eyebrow t-accent">Start from the disease · Open Targets + patents + literature</div>
+          <h3 className="serif text-[18px] mt-1">Discover candidate drugs for {diseaseName}</h3>
+        </div>
+        <button
+          onClick={onRun}
+          disabled={loading}
+          className="mono text-[12px] px-4 py-2 rounded-md disabled:opacity-60"
+          style={{ background: loading ? "var(--bg-2)" : "var(--accent-dim)", border: "1px solid var(--accent)", color: "var(--accent)" }}
+        >
+          {loading ? "searching…" : drugs ? "refresh" : "discover drugs"}
+        </button>
+      </div>
+      <p className="text-[11.5px] t-muted mt-2 leading-snug max-w-[86ch]">
+        No target needed. Pick a drug and the model auto-selects the best target for it (lowest
+        attrition of its candidate mechanisms), then runs the full dashboard.
+      </p>
+      {error && <p className="mono text-[12px] mt-3" style={{ color: "var(--red)" }}>{error}</p>}
+      {drugs && drugs.length === 0 && !loading && (
+        <p className="t-muted text-[13px] mt-3">No candidate drugs found for this disease.</p>
+      )}
+      {drugs && drugs.length > 0 && (
+        <div className="mt-4 flex flex-col gap-2">
+          {drugs.map((d) => (
+            <div
+              key={`${d.name}-${d.chemblId ?? ""}`}
+              className="rounded-md p-3 flex items-start justify-between gap-3"
+              style={{ background: "var(--bg-2)", border: "1px solid var(--line-2)" }}
+            >
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[14px] font-semibold">{d.name}</span>
+                  <span
+                    className="pill mono uppercase"
+                    style={{
+                      fontSize: 9.5,
+                      color: d.status === "approved" ? "var(--green)" : "var(--amber)",
+                      borderColor: d.status === "approved" ? "var(--green)" : "var(--amber)",
+                      background: d.status === "approved" ? "var(--green-dim)" : "var(--amber-dim)",
+                    }}
+                  >
+                    {d.status}
+                  </span>
+                  {d.evidenceSources.map((s) => (
+                    <span key={s} className="pill mono t-muted" style={{ fontSize: 9 }}>{s}</span>
+                  ))}
+                </div>
+                <p className="text-[12.5px] t-muted mt-1 leading-snug">{d.rationale}</p>
+              </div>
+              {d.drug && (
+                <button
+                  onClick={() => onPick(d.drug!)}
+                  className="mono text-[11px] px-2.5 py-1 rounded flex-none"
+                  style={{ border: "1px solid var(--accent)", color: "var(--accent)" }}
+                >
+                  forecast →
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function AutoTargetBanner({
+  winner,
+  candidates,
+  drug,
+}: {
+  winner: string;
+  candidates: CandidateTargetScore[];
+  drug: string;
+}) {
+  const ranked = [...candidates].filter((c) => c.attrition != null).sort((a, b) => a.attrition! - b.attrition!);
+  return (
+    <div className="panel p-4 mb-6 rise" style={{ borderColor: "var(--line-2)" }}>
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <span className="mono text-[10px] uppercase tracking-wider t-accent">Target auto-selected</span>
+        <span className="serif text-[18px]">{winner}</span>
+        <span className="t-muted text-[12px]">
+          lowest attrition of {candidates.length} candidate target{candidates.length === 1 ? "" : "s"} for{" "}
+          {drug.toLowerCase()}
+        </span>
+      </div>
+      {ranked.length > 1 && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {ranked.map((c) => (
+            <span
+              key={c.symbol}
+              className="pill mono text-[11px]"
+              style={{
+                borderColor: c.symbol === winner ? "var(--accent)" : "var(--line-2)",
+                color: c.symbol === winner ? "var(--accent)" : "var(--muted)",
+              }}
+            >
+              {c.symbol} · {c.attrition != null ? `${Math.round(c.attrition * 100)}%` : "—"}
+            </span>
+          ))}
+        </div>
+      )}
+      <p className="text-[11px] t-muted mt-2 leading-snug max-w-[92ch]">
+        Candidate targets were derived from the drug&apos;s mechanism (Open Targets) and literature, each
+        scored with a quick attrition estimate; the dashboard below is the full computation for the
+        winner. Tournament estimates use raw cohort data and differ slightly from the final number.
+      </p>
+    </div>
+  );
+}
+
+function TournamentStatus({ state, error, drug }: { state: "loading" | "error"; error: string; drug: string }) {
+  return (
+    <div className="panel p-8 text-center mb-16 rise">
+      {state === "loading" ? (
+        <>
+          <div className="serif text-[22px] mb-2">Selecting the best target for {drug.toLowerCase()}…</div>
+          <p className="mono text-[11px] t-muted">
+            deriving candidate targets · scoring each · picking lowest attrition · running the full dashboard
+          </p>
+        </>
+      ) : (
+        <>
+          <div className="serif text-[20px] mb-2">Could not run the forecast</div>
+          <p className="mono text-[12px]" style={{ color: "var(--red)" }}>{error}</p>
+        </>
       )}
     </div>
   );

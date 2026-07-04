@@ -37,7 +37,7 @@ const PHASE_LABEL: Record<PhaseKey, string> = {
   filed: "filed",
 };
 
-function areaOf(diseaseName: string): AreaKey {
+export function areaOf(diseaseName: string): AreaKey {
   const n = diseaseName.toLowerCase();
   if (/obesit|diabet|metaboli|lipid|nash|endocrin/.test(n)) return "metabolic";
   if (/alzheim|parkinson|neuro|demen|epilep|sclerosis|migraine/.test(n)) return "neurology";
@@ -45,7 +45,7 @@ function areaOf(diseaseName: string): AreaKey {
   return "default";
 }
 
-function phaseOf(maxPhase: number | null | undefined): PhaseKey {
+export function phaseOf(maxPhase: number | null | undefined): PhaseKey {
   if (maxPhase == null) return "pre";
   if (maxPhase >= 4) return "filed";
   if (maxPhase >= 3) return "p3";
@@ -81,6 +81,42 @@ function cohortFailFraction(report: Report): number {
   return failed / decided.length;
 }
 
+// ---- the sole attrition math ----
+// Both computeAttrition (from a full Report) and the target tournament (from raw
+// features) call this, so the formula can never drift between the two paths.
+export interface AttritionFeatures {
+  area: AreaKey;
+  phase: PhaseKey;
+  association: number; // 0-1
+  modalityOverall: number; // 0-1
+  cohortFailFraction: number | null; // null => neutral (no decided cohort)
+  leadMaxPhase: number | null;
+}
+export interface AttritionTerms {
+  br: number;
+  orGenetic: number;
+  orModality: number;
+  orPrecedent: number;
+  orDrug: number;
+}
+
+export function attritionMath(f: AttritionFeatures): { attrition: number; pos: number; terms: AttritionTerms } {
+  const br = BASE_RATE[f.area][f.phase];
+  const assoc = clamp(f.association, 0, 1);
+  const mod = clamp(f.modalityOverall, 0, 1);
+  // null => 0.4 pivot (orPrecedent = 1.0, neutral). Callers with a Report pass the
+  // legacy 0.5 empty-cohort default explicitly to keep existing numbers identical.
+  const fail = clamp(f.cohortFailFraction == null ? 0.4 : f.cohortFailFraction, 0, 1);
+  const orGenetic = Math.pow(2, (assoc - 0.3) / 0.35); // ~2x at assoc 0.65 (Nelson 2015)
+  const orModality = Math.pow(2, (mod - 0.5) / 0.4);
+  const orPrecedent = Math.pow(2, -((fail - 0.4) / 0.3)); // high prior failure -> penalty
+  const orDrug = f.leadMaxPhase != null && f.leadMaxPhase >= 4 ? 1.2 : 1.0;
+  const logOdds =
+    logit(br) + Math.log(orGenetic) + Math.log(orModality) + Math.log(orPrecedent) + Math.log(orDrug);
+  const pos = sigmoid(logOdds);
+  return { attrition: 1 - pos, pos, terms: { br, orGenetic, orModality, orPrecedent, orDrug } };
+}
+
 export function computeAttrition(args: {
   report: Report;
   target: TargetAssoc | null;
@@ -97,22 +133,20 @@ export function computeAttrition(args: {
     null
   );
   const phase = phaseOf(lead?.max_phase);
-  const br = BASE_RATE[area][phase];
 
   const assoc = clamp(target?.association ?? 0.3, 0, 1);
   const mod = clamp(report.modality.overall, 0, 1);
-  const fail = clamp(cohortFailFraction(report), 0, 1);
+  const fail = clamp(cohortFailFraction(report), 0, 1); // legacy 0.5 default for empty
 
-  // odds-ratio adjustments (multiplicative on odds; additive in log-odds)
-  const orGenetic = Math.pow(2, (assoc - 0.3) / 0.35); // ~2x at assoc 0.65 (Nelson 2015)
-  const orModality = Math.pow(2, (mod - 0.5) / 0.4);
-  const orPrecedent = Math.pow(2, -((fail - 0.4) / 0.3)); // high prior failure -> penalty
-  const orDrug = lead ? (lead.max_phase && lead.max_phase >= 4 ? 1.2 : 1.0) : 1.0;
-
-  const logOdds =
-    logit(br) + Math.log(orGenetic) + Math.log(orModality) + Math.log(orPrecedent) + Math.log(orDrug);
-  const pos = sigmoid(logOdds);
-  const attrition = 1 - pos;
+  const { attrition, pos, terms } = attritionMath({
+    area,
+    phase,
+    association: target?.association ?? 0.3,
+    modalityOverall: report.modality.overall,
+    cohortFailFraction: cohortFailFraction(report),
+    leadMaxPhase: lead?.max_phase ?? null,
+  });
+  const { br, orGenetic, orModality, orPrecedent, orDrug } = terms;
 
   const leadLabel = lead
     ? `${lead.name.toLowerCase()} (${phase === "filed" ? "approved" : PHASE_LABEL[phase]})`

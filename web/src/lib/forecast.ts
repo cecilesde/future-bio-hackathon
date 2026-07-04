@@ -9,16 +9,18 @@
 // Cohort source is Open Targets `drugAndClinicalCandidates` (live, no AMASS
 // credits required) plus Elicit literature. Runs server-side only.
 
-import { computeAttrition, type AttritionScore } from "./attrition";
+import { computeAttrition, attritionMath, areaOf, phaseOf, type AttritionScore } from "./attrition";
 import { extract } from "./llm";
 import { searchPapers, type ElicitPaper } from "./elicit";
 import { restQuery } from "./supabase";
 import { getPatents, getDrugTrials } from "./evidence";
+import { predictTargets } from "./predict";
 import {
   resolveDisease,
   resolveTarget,
   associationFor,
   cohortCandidates,
+  drugTargets,
   type CohortCandidate,
 } from "./opentargets";
 import type {
@@ -448,6 +450,122 @@ function subjectModalityOf(drugs: Drug[]): string {
 
 function toPaper(p: ElicitPaper): Paper {
   return { ...p, pmid: null };
+}
+
+// ===================================================================== //
+//  Auto-target tournament: (disease + drug, no target) -> best target    //
+// ===================================================================== //
+
+// Deterministic modality prior replacing the LLM modality score in the cheap
+// per-candidate scoring. Literature-anchored, not fitted.
+function modalityPrior(moleculeType: string | null): number {
+  const t = (moleculeType ?? "").toLowerCase();
+  if (t.includes("antibody")) return 0.55;
+  if (t.includes("small")) return 0.6;
+  if (t.includes("protein") || t.includes("peptide")) return 0.5;
+  if (t.includes("oligo") || t.includes("nucleotide")) return 0.45;
+  return 0.5;
+}
+
+const FAILED_RE = /TERMINATED|WITHDRAWN|SUSPENDED/i;
+const ONGOING_RE = /RECRUITING|ACTIVE|ENROLL|NOT_YET/i;
+
+// Raw failed/decided estimate straight from OT candidate rows (no LLM), mirroring
+// the curation prompt's status->outcome rules. null when no decided programs.
+function rawOutcome(c: CohortCandidate): "approved" | "failed" | "ongoing" | "unknown" {
+  if (/PHASE_?4/i.test(c.maxStage ?? "")) return "approved";
+  const statuses = c.reports.map((r) => r.status ?? "");
+  if (statuses.some((x) => FAILED_RE.test(x))) return "failed";
+  if (statuses.some((x) => ONGOING_RE.test(x))) return "ongoing";
+  if (statuses.length && statuses.every((x) => /COMPLETED/i.test(x))) return "ongoing"; // completed, not approved => undecided
+  return "unknown";
+}
+export function rawFailFraction(cands: CohortCandidate[]): number | null {
+  let failed = 0;
+  let decided = 0;
+  for (const c of cands) {
+    const o = rawOutcome(c);
+    if (o === "failed") {
+      failed++;
+      decided++;
+    } else if (o === "approved") {
+      decided++;
+    }
+  }
+  return decided ? failed / decided : null;
+}
+
+export interface CandidateTargetScore {
+  symbol: string;
+  ensemblId: string | null;
+  attrition: number | null;
+  association: number;
+  failFraction: number | null;
+  resolved: boolean;
+}
+export interface BestTargetResult {
+  winner: string;
+  candidates: CandidateTargetScore[];
+}
+
+// Candidate targets for a drug: literature-first (Claude+Elicit) unioned with the
+// drug's Open Targets mechanism targets. Both-source symbols rank first. Cap 5.
+async function deriveCandidateTargets(drug: Drug, disease: string): Promise<string[]> {
+  const [lit, mech] = await Promise.all([
+    predictTargets(drug.name, disease)
+      .then((r) => r.targets.map((t) => t.symbol.toUpperCase()))
+      .catch(() => [] as string[]),
+    drug.chembl_id ? drugTargets(drug.chembl_id).catch(() => [] as string[]) : Promise.resolve([] as string[]),
+  ]);
+  const both = lit.filter((s) => mech.includes(s));
+  return [...new Set([...both, ...mech, ...lit])].slice(0, 5);
+}
+
+// Score each candidate target's attrition cheaply (association + raw cohort +
+// modality prior + drug phase), pick the lowest (best odds).
+export async function deriveBestTarget(drug: Drug, diseaseName: string): Promise<BestTargetResult | null> {
+  const disease = await resolveDisease(diseaseName).catch(() => null);
+  const efoId = disease?.id ?? null;
+  const symbols = await deriveCandidateTargets(drug, diseaseName);
+  if (!symbols.length) return null;
+
+  const area = areaOf(diseaseName);
+  const phase = phaseOf(drug.max_phase);
+  const modalityOverall = modalityPrior(drug.molecule_type);
+
+  const scored = await Promise.all(
+    symbols.map(async (symbol): Promise<CandidateTargetScore> => {
+      const t = await resolveTarget(symbol).catch(() => null);
+      if (!t) return { symbol, ensemblId: null, attrition: null, association: NEUTRAL_ASSOC, failFraction: null, resolved: false };
+      const [assoc, cands] = await Promise.all([
+        efoId ? associationFor(t.id, efoId) : Promise.resolve({ association: 0, evidence: [], datatypeScores: {}, found: false }),
+        cohortCandidates(t.id).catch(() => [] as CohortCandidate[]),
+      ]);
+      const association = assoc.found ? assoc.association : NEUTRAL_ASSOC;
+      const failFraction = rawFailFraction(cands);
+      const { attrition } = attritionMath({ area, phase, association, modalityOverall, cohortFailFraction: failFraction, leadMaxPhase: drug.max_phase });
+      return { symbol, ensemblId: t.id, attrition, association, failFraction, resolved: true };
+    })
+  );
+
+  const eligible = scored.filter((c) => c.resolved && c.attrition != null);
+  if (!eligible.length) return null;
+  eligible.sort((a, b) => a.attrition! - b.attrition! || b.association - a.association);
+  return { winner: eligible[0].symbol, candidates: scored };
+}
+
+export interface ForecastByDrugResult extends ForecastResult {
+  candidateTargets: CandidateTargetScore[];
+  autoTarget: string;
+}
+
+// Full dashboard from (disease + drug), no user target: pick the best target, then
+// run the standard forecast for it.
+export async function forecastByDrug(diseaseName: string, drug: Drug): Promise<ForecastByDrugResult | null> {
+  const best = await deriveBestTarget(drug, diseaseName);
+  if (!best) return null;
+  const base = await generateForecast({ diseaseName, targetSymbol: best.winner, drugs: [drug] });
+  return { ...base, candidateTargets: best.candidates, autoTarget: best.winner };
 }
 
 // ------------------------------------------------------------------- main ----

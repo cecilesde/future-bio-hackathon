@@ -188,3 +188,62 @@ export async function cohortCandidates(ensemblId: string): Promise<CohortCandida
       };
     });
 }
+
+// ---- drug -> targets (for the auto-target tournament) ----
+// A drug's mechanism-of-action targets, by HGNC symbol. Verified: aspirin
+// (CHEMBL25) -> PTGS1, PTGS2. Returns [] on error / unknown drug.
+export async function drugTargets(chemblId: string): Promise<string[]> {
+  const q = `query($id:String!){ drug(chemblId:$id){ mechanismsOfAction{ rows{ targets{ approvedSymbol } } } } }`;
+  try {
+    const d = await post<{
+      drug: { mechanismsOfAction: { rows: { targets: { approvedSymbol: string | null }[] | null }[] } | null } | null;
+    }>(q, { id: chemblId });
+    const rows = d.drug?.mechanismsOfAction?.rows ?? [];
+    const syms = new Set<string>();
+    for (const r of rows) for (const t of r.targets ?? []) if (t.approvedSymbol) syms.add(t.approvedSymbol.toUpperCase());
+    return [...syms];
+  } catch {
+    return [];
+  }
+}
+
+// ---- disease -> drugs (structured backbone for drug discovery) ----
+export interface DiseaseDrugRow {
+  name: string;
+  chemblId: string | null;
+  drugType: string | null;
+  maxClinicalStage: string | null;
+}
+export async function diseaseDrugCandidates(efoId: string): Promise<DiseaseDrugRow[]> {
+  const q = `query($e:String!){
+    disease(efoId:$e){ drugAndClinicalCandidates{ rows{ maxClinicalStage drug{ id name drugType maximumClinicalStage } } } }
+  }`;
+  try {
+    const d = await post<{
+      disease: {
+        drugAndClinicalCandidates: {
+          rows: {
+            maxClinicalStage: string | null;
+            drug: { id: string; name: string; drugType: string | null; maximumClinicalStage: string | null } | null;
+          }[];
+        } | null;
+      } | null;
+    }>(q, { e: efoId });
+    const rows = d.disease?.drugAndClinicalCandidates?.rows ?? [];
+    const seen = new Set<string>();
+    const out: DiseaseDrugRow[] = [];
+    for (const r of rows) {
+      if (!r.drug || seen.has(r.drug.id)) continue;
+      seen.add(r.drug.id);
+      out.push({
+        name: r.drug.name,
+        chemblId: r.drug.id,
+        drugType: r.drug.drugType,
+        maxClinicalStage: r.maxClinicalStage ?? r.drug.maximumClinicalStage,
+      });
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}

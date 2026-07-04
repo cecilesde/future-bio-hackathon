@@ -15,11 +15,11 @@ import { restQuery } from "./supabase";
 import { searchPatents, searchDrugTrials } from "./amass";
 import type { Patent, TrialDetail } from "./types";
 
-function keyOf(kind: string, ref: string): string {
+export function keyOf(kind: string, ref: string): string {
   return createHash("sha1").update(`${kind}|${ref.toLowerCase()}`).digest("hex");
 }
 
-async function readCache<T>(cacheKey: string): Promise<T[] | null> {
+export async function readCache<T>(cacheKey: string): Promise<T[] | null> {
   try {
     const rows = await restQuery<{ items: T[] }>(
       `pg_evidence?cache_key=eq.${cacheKey}&select=items&limit=1`
@@ -30,7 +30,7 @@ async function readCache<T>(cacheKey: string): Promise<T[] | null> {
   }
 }
 
-async function writeCache(cacheKey: string, kind: string, ref: string, items: unknown): Promise<void> {
+export async function writeCache(cacheKey: string, kind: string, ref: string, items: unknown): Promise<void> {
   const url = process.env.SUPABASE_URL;
   const svc = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !svc) return;

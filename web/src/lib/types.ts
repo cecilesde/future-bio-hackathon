@@ -154,6 +154,16 @@ export interface Paper {
   urls: string[];
 }
 
+// A candidate drug surfaced by disease-only discovery (OT + patents + literature).
+export interface DiscoveredDrug {
+  name: string;
+  status: "approved" | "experimental";
+  rationale: string;
+  evidenceSources: string[]; // e.g. ["Open Targets", "literature", "patent"]
+  chemblId?: string;
+  drug?: Drug; // resolved pg_drugs record (chembl_id/max_phase/molecule_type) when found
+}
+
 export interface Patent {
   title: string;
   abstract: string | null;

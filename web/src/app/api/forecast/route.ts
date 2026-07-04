@@ -1,68 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createHash } from "crypto";
-import { generateForecast, type ForecastResult } from "@/lib/forecast";
-import { restQuery } from "@/lib/supabase";
+import { generateForecast } from "@/lib/forecast";
+import { drugKeyOf, forecastCacheKey, readForecastCache, writeForecastCache } from "@/lib/forecast-cache";
 import type { Drug } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300; // multi-stage agent (Fluid Compute)
-
-function drugKeyOf(drugs: Drug[]): string {
-  return drugs
-    .map((d) => d.chembl_id)
-    .filter(Boolean)
-    .sort()
-    .join(",");
-}
-
-// Bump when the cached report shape changes so old rows miss and regenerate.
-const SCHEMA_VERSION = "v4"; // v4: AMASS-enriched per-programme trials (why-stopped/summary)
-
-function cacheKey(disease: string, target: string, drugKey: string): string {
-  return createHash("sha1")
-    .update(`${SCHEMA_VERSION}|${disease.toLowerCase()}|${target.toUpperCase()}|${drugKey}`)
-    .digest("hex");
-}
-
-// Best-effort cache write with the service role (bypasses RLS). Never throws.
-async function writeCache(key: string, disease: string, target: string, drugKey: string, r: ForecastResult) {
-  const url = process.env.SUPABASE_URL;
-  const svc = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !svc) return;
-  try {
-    await fetch(`${url}/rest/v1/forecast_cache`, {
-      method: "POST",
-      headers: {
-        apikey: svc,
-        Authorization: `Bearer ${svc}`,
-        "Content-Type": "application/json",
-        Prefer: "resolution=merge-duplicates,return=minimal",
-      },
-      body: JSON.stringify({
-        cache_key: key,
-        disease_name: disease,
-        target_symbol: target,
-        drug_key: drugKey,
-        report: r.report,
-        score: r.score,
-        papers: r.papers,
-        patents: r.patents,
-        provenance: r.provenance,
-      }),
-      cache: "no-store",
-    });
-  } catch {
-    /* cache is best-effort */
-  }
-}
-
-interface CacheRow {
-  report: ForecastResult["report"];
-  score: ForecastResult["score"];
-  papers: ForecastResult["papers"];
-  patents: ForecastResult["patents"];
-  provenance: ForecastResult["provenance"];
-}
 
 export async function POST(req: NextRequest) {
   let body: { disease?: string; target?: string; drugs?: Drug[] };
@@ -80,23 +22,14 @@ export async function POST(req: NextRequest) {
   }
 
   const drugKey = drugKeyOf(drugs);
-  const key = cacheKey(disease, target, drugKey);
+  const key = forecastCacheKey(disease, target, drugKey);
 
-  // cache read (anon)
-  try {
-    const hit = await restQuery<CacheRow>(
-      `forecast_cache?cache_key=eq.${key}&select=report,score,papers,patents,provenance&limit=1`
-    );
-    if (hit.length) {
-      return NextResponse.json({ ...hit[0], cached: true });
-    }
-  } catch {
-    /* fall through to compute */
-  }
+  const hit = await readForecastCache(key);
+  if (hit) return NextResponse.json({ ...hit, cached: true });
 
   try {
     const result = await generateForecast({ diseaseName: disease, targetSymbol: target, drugs });
-    await writeCache(key, disease, target, drugKey, result);
+    await writeForecastCache(key, disease, target, drugKey, result);
     return NextResponse.json({ ...result, cached: false });
   } catch (e) {
     return NextResponse.json({ error: String(e).slice(0, 400) }, { status: 502 });
