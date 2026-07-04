@@ -117,6 +117,83 @@ export function attritionMath(f: AttritionFeatures): { attrition: number; pos: n
   return { attrition: 1 - pos, pos, terms: { br, orGenetic, orModality, orPrecedent, orDrug } };
 }
 
+// The second (validation) term differs by lens: genetic association for the
+// target path, drug efficacy evidence for the target-free path.
+interface SecondTerm {
+  label: string;
+  input: string;
+  citation?: string;
+}
+
+// Shared decomposition builder. computeAttrition passes the genetic strings so
+// its output stays byte-identical; the target-free path passes efficacy strings.
+function buildScore(p: {
+  area: AreaKey;
+  phase: PhaseKey;
+  terms: AttritionTerms;
+  pos: number;
+  attrition: number;
+  mod: number;
+  fail: number;
+  lead: Drug | null;
+  modalityLabel: string;
+  second: SecondTerm;
+  precedentInput: string;
+  driverPrecedent: string;
+  driverValidation: string;
+}): AttritionScore {
+  const { br, orGenetic, orModality, orPrecedent, orDrug } = p.terms;
+  const leadLabel = p.lead
+    ? `${p.lead.name.toLowerCase()} (${p.phase === "filed" ? "approved" : PHASE_LABEL[p.phase]})`
+    : "no lead compound → de-novo (preclinical)";
+
+  const components: Component[] = [
+    {
+      label: `Base rate · ${AREA_LABEL[p.area]}, from ${PHASE_LABEL[p.phase]}`,
+      kind: "base",
+      value: br,
+      input: leadLabel,
+      citation: "Wong, Siah & Lo 2019; BIO/Informa success rates",
+    },
+    { label: p.second.label, kind: "factor", value: orGenetic, input: p.second.input, citation: p.second.citation },
+    {
+      label: `Modality feasibility · ${Math.round(p.mod * 100)}%`,
+      kind: "factor",
+      value: orModality,
+      input: p.modalityLabel,
+    },
+    {
+      label: `Reference-class precedent · ${Math.round(p.fail * 100)}% of analogues failed`,
+      kind: "factor",
+      value: orPrecedent,
+      input: p.precedentInput,
+    },
+    {
+      label: `Drug track record`,
+      kind: "factor",
+      value: orDrug,
+      input: p.lead ? `${p.lead.name.toLowerCase()} developability` : "no drug selected (neutral)",
+    },
+    { label: "Probability of success", kind: "result", value: p.pos, input: "= sigmoid(Σ log-odds)" },
+  ];
+
+  const factors = [
+    { name: "the historical base rate at this stage", w: Math.abs(logit(br) - logit(0.1)) },
+    { name: p.driverPrecedent, w: Math.abs(Math.log(orPrecedent)) },
+    { name: p.driverValidation, w: Math.abs(Math.log(orGenetic)) },
+    { name: "modality feasibility", w: Math.abs(Math.log(orModality)) },
+  ].sort((a, b) => b.w - a.w);
+
+  return { attrition: p.attrition, pos: p.pos, components, drivenBy: factors[0].name };
+}
+
+function leadOf(drugs: Drug[]): Drug | null {
+  return drugs.reduce<Drug | null>(
+    (best, d) => (best == null || (d.max_phase ?? -1) > (best.max_phase ?? -1) ? d : best),
+    null
+  );
+}
+
 export function computeAttrition(args: {
   report: Report;
   target: TargetAssoc | null;
@@ -125,15 +202,8 @@ export function computeAttrition(args: {
 }): AttritionScore {
   const { report, target, drugs, diseaseName } = args;
   const area = areaOf(diseaseName);
-
-  // base rate anchored on the most advanced selected drug's phase (no drug ->
-  // de-novo / preclinical), which is what makes the score move with the drug.
-  const lead = drugs.reduce<Drug | null>(
-    (best, d) => (best == null || (d.max_phase ?? -1) > (best.max_phase ?? -1) ? d : best),
-    null
-  );
+  const lead = leadOf(drugs);
   const phase = phaseOf(lead?.max_phase);
-
   const assoc = clamp(target?.association ?? 0.3, 0, 1);
   const mod = clamp(report.modality.overall, 0, 1);
   const fail = clamp(cohortFailFraction(report), 0, 1); // legacy 0.5 default for empty
@@ -146,55 +216,70 @@ export function computeAttrition(args: {
     cohortFailFraction: cohortFailFraction(report),
     leadMaxPhase: lead?.max_phase ?? null,
   });
-  const { br, orGenetic, orModality, orPrecedent, orDrug } = terms;
 
-  const leadLabel = lead
-    ? `${lead.name.toLowerCase()} (${phase === "filed" ? "approved" : PHASE_LABEL[phase]})`
-    : "no lead compound → de-novo (preclinical)";
-
-  const components: Component[] = [
-    {
-      label: `Base rate · ${AREA_LABEL[area]}, from ${PHASE_LABEL[phase]}`,
-      kind: "base",
-      value: br,
-      input: leadLabel,
-      citation: "Wong, Siah & Lo 2019; BIO/Informa success rates",
-    },
-    {
+  return buildScore({
+    area,
+    phase,
+    terms,
+    pos,
+    attrition,
+    mod,
+    fail,
+    lead,
+    modalityLabel: `${report.modality.modality} druggability`,
+    second: {
       label: `Genetic / target validation · association ${assoc.toFixed(2)}`,
-      kind: "factor",
-      value: orGenetic,
       input: `${target?.symbol ?? "target"}–disease, Open Targets`,
       citation: "Nelson et al. 2015, Nat Genet",
     },
-    {
-      label: `Modality feasibility · ${Math.round(mod * 100)}%`,
-      kind: "factor",
-      value: orModality,
-      input: `${report.modality.modality} druggability`,
-    },
-    {
-      label: `Reference-class precedent · ${Math.round(fail * 100)}% of analogues failed`,
-      kind: "factor",
-      value: orPrecedent,
-      input: "historical cohort (this view's swimlanes)",
-    },
-    {
-      label: `Drug track record`,
-      kind: "factor",
-      value: orDrug,
-      input: lead ? `${lead.name.toLowerCase()} developability` : "no drug selected (neutral)",
-    },
-    { label: "Probability of success", kind: "result", value: pos, input: "= sigmoid(Σ log-odds)" },
-  ];
+    precedentInput: "historical cohort (this view's swimlanes)",
+    driverPrecedent: "prior failures at this target",
+    driverValidation: "target validation strength",
+  });
+}
 
-  // dominant driver, for the plain-language line
-  const factors = [
-    { name: "the historical base rate at this stage", w: Math.abs(logit(br) - logit(0.1)) },
-    { name: "prior failures at this target", w: Math.abs(Math.log(orPrecedent)) },
-    { name: "target validation strength", w: Math.abs(Math.log(orGenetic)) },
-    { name: "modality feasibility", w: Math.abs(Math.log(orModality)) },
-  ].sort((a, b) => b.w - a.w);
+// Target-free lens: the validation term is the drug's efficacy evidence in this
+// disease (not genetics, no target); the cohort is the disease's drug programs.
+export function computeAttritionTargetFree(args: {
+  diseaseName: string;
+  drug: Drug;
+  report: Report;
+  efficacyEvidence: number; // 0-1, feeds attritionMath's second term
+  efficacyRationale: string;
+  efficacyLevel: string;
+}): AttritionScore {
+  const { diseaseName, drug, report, efficacyEvidence, efficacyRationale, efficacyLevel } = args;
+  const area = areaOf(diseaseName);
+  const phase = phaseOf(drug.max_phase);
+  const mod = clamp(report.modality.overall, 0, 1);
+  const fail = clamp(cohortFailFraction(report), 0, 1);
 
-  return { attrition, pos, components, drivenBy: factors[0].name };
+  const { attrition, pos, terms } = attritionMath({
+    area,
+    phase,
+    association: efficacyEvidence,
+    modalityOverall: report.modality.overall,
+    cohortFailFraction: cohortFailFraction(report),
+    leadMaxPhase: drug.max_phase,
+  });
+
+  return buildScore({
+    area,
+    phase,
+    terms,
+    pos,
+    attrition,
+    mod,
+    fail,
+    lead: drug,
+    modalityLabel: `${report.modality.modality} druggability`,
+    second: {
+      label: `Drug efficacy evidence · ${efficacyLevel} ${efficacyEvidence.toFixed(2)}`,
+      input: efficacyRationale || `${drug.name.toLowerCase()} in ${diseaseName}, own trials + literature`,
+      citation: "Drug's own trials + literature",
+    },
+    precedentInput: "similar programmes for this disease",
+    driverPrecedent: "prior failures for this indication",
+    driverValidation: "drug efficacy evidence",
+  });
 }

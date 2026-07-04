@@ -117,53 +117,38 @@ export interface CohortCandidate {
   reports: CohortReport[];
 }
 
-// The reference-class cohort for a target: every drug / clinical candidate that
-// acts on it, with its trial reports (phase, status, why-stopped). Live, AMASS-free.
-export async function cohortCandidates(ensemblId: string): Promise<CohortCandidate[]> {
-  const q = `query($t:String!){
-    target(ensemblId:$t){
-      drugAndClinicalCandidates{
-        rows{
-          maxClinicalStage
-          drug{ id name drugType maximumClinicalStage }
-          diseases{ disease{ id name } }
-          clinicalReports{ trialPhase trialOverallStatus trialWhyStopped trialStopReasonCategories trialStartDate year title url }
-        }
-      }
-    }
-  }`;
-  const d = await post<{
-    target: {
-      drugAndClinicalCandidates: {
-        rows: {
-          maxClinicalStage: string | null;
-          drug: { id: string; name: string; drugType: string | null; maximumClinicalStage: string | null } | null;
-          diseases: ({ disease: { id: string; name: string } | null } | null)[] | null;
-          clinicalReports: {
-            trialPhase: string | null;
-            trialOverallStatus: string | null;
-            trialWhyStopped: string | null;
-            trialStopReasonCategories: string[] | null;
-            trialStartDate: string | null;
-            year: number | null;
-            title: string | null;
-            url: string | null;
-          }[] | null;
-        }[];
-      } | null;
-    } | null;
-  }>(q, { t: ensemblId });
+// Shared shape of one drugAndClinicalCandidates row (identical on target and
+// disease queries) + its mapper into CohortCandidate.
+interface CandidateRow {
+  maxClinicalStage: string | null;
+  drug: { id: string; name: string; drugType: string | null; maximumClinicalStage: string | null } | null;
+  diseases?: ({ disease: { id: string; name: string } | null } | null)[] | null; // present on target rows only
+  clinicalReports:
+    | {
+        trialPhase: string | null;
+        trialOverallStatus: string | null;
+        trialWhyStopped: string | null;
+        trialStopReasonCategories: string[] | null;
+        trialStartDate: string | null;
+        year: number | null;
+        title: string | null;
+        url: string | null;
+      }[]
+    | null;
+}
 
-  const rows = d.target?.drugAndClinicalCandidates?.rows ?? [];
+const REPORTS_SEL = `clinicalReports{ trialPhase trialOverallStatus trialWhyStopped trialStopReasonCategories trialStartDate year title url }`;
+// The target row exposes `diseases` (the drug's indications); the disease row does
+// NOT (querying it there is a GraphQL error). Two selections, one mapper.
+const TARGET_ROWS = `rows{ maxClinicalStage drug{ id name drugType maximumClinicalStage } diseases{ disease{ id name } } ${REPORTS_SEL} }`;
+const DISEASE_ROWS = `rows{ maxClinicalStage drug{ id name drugType maximumClinicalStage } ${REPORTS_SEL} }`;
+
+function mapCandidateRows(rows: CandidateRow[]): CohortCandidate[] {
   return rows
     .filter((r) => r.drug)
     .map((r) => {
       const diseases = [
-        ...new Set(
-          (r.diseases ?? [])
-            .map((x) => x?.disease?.name)
-            .filter((n): n is string => !!n)
-        ),
+        ...new Set((r.diseases ?? []).map((x) => x?.disease?.name).filter((n): n is string => !!n)),
       ];
       const reports = (r.clinicalReports ?? [])
         .filter((rep) => rep.trialOverallStatus || rep.trialPhase || rep.trialWhyStopped || rep.trialStartDate)
@@ -187,6 +172,22 @@ export async function cohortCandidates(ensemblId: string): Promise<CohortCandida
         reports,
       };
     });
+}
+
+// The reference-class cohort for a target: every drug / clinical candidate that
+// acts on it, with its trial reports (phase, status, why-stopped). Live, AMASS-free.
+export async function cohortCandidates(ensemblId: string): Promise<CohortCandidate[]> {
+  const q = `query($t:String!){ target(ensemblId:$t){ drugAndClinicalCandidates{ ${TARGET_ROWS} } } }`;
+  const d = await post<{ target: { drugAndClinicalCandidates: { rows: CandidateRow[] } | null } | null }>(q, { t: ensemblId });
+  return mapCandidateRows(d.target?.drugAndClinicalCandidates?.rows ?? []);
+}
+
+// The reference-class cohort for a DISEASE: every drug / clinical candidate in
+// development or approved for it. Same shape as cohortCandidates (target-free).
+export async function diseaseCohortCandidates(efoId: string): Promise<CohortCandidate[]> {
+  const q = `query($e:String!){ disease(efoId:$e){ drugAndClinicalCandidates{ ${DISEASE_ROWS} } } }`;
+  const d = await post<{ disease: { drugAndClinicalCandidates: { rows: CandidateRow[] } | null } | null }>(q, { e: efoId });
+  return mapCandidateRows(d.disease?.drugAndClinicalCandidates?.rows ?? []);
 }
 
 // ---- drug -> targets (for the auto-target tournament) ----

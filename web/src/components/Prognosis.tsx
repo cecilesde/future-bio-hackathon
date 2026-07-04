@@ -44,15 +44,8 @@ interface LiveForecast {
   };
   cached?: boolean;
   subjectKey: string; // the subject this result was computed for (client-tagged)
-  autoTarget?: string; // set when the target was auto-selected by the tournament
-  candidateTargets?: CandidateTargetScore[];
-}
-
-interface CandidateTargetScore {
-  symbol: string;
-  attrition: number | null;
-  association: number;
-  resolved: boolean;
+  targetFree?: boolean; // true for the drug+disease (no target) path
+  drugTargets?: string[]; // informational: the drug's mechanism targets
 }
 
 interface LivePending {
@@ -146,16 +139,16 @@ export default function Prognosis({
     }
   }
 
-  // ---- (disease + drug, no target) -> auto-target tournament forecast ----
-  const [tourn, setTourn] = useState<{ drugKey: string; state: "loading" | "error"; error: string } | null>(null);
+  // ---- (disease + drug, no target) -> target-free forecast ----
+  const [tfState, setTfState] = useState<{ drugKey: string; state: "loading" | "error"; error: string } | null>(null);
   const currentDrugKey = drugs[0] ? drugs[0].chembl_id || drugs[0].name : "";
-  const tournForCurrent = tourn && tourn.drugKey === currentDrugKey ? tourn : null;
+  const tfForCurrent = tfState && tfState.drugKey === currentDrugKey ? tfState : null;
 
-  async function runTournament(drug: Drug) {
+  async function runTargetFree(drug: Drug) {
     const dKey = drug.chembl_id || drug.name;
     setDrugs([drug]);
     setTargetSel(null);
-    setTourn({ drugKey: dKey, state: "loading", error: "" });
+    setTfState({ drugKey: dKey, state: "loading", error: "" });
     try {
       const res = await fetch("/api/forecast-by-drug", {
         method: "POST",
@@ -164,13 +157,11 @@ export default function Prognosis({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "forecast failed");
-      const winner = String(data.autoTarget ?? "").toUpperCase();
-      const winnerKey = `${diseaseName}|${winner}|${drug.chembl_id || ""}`;
-      setLive({ ...(data as LiveForecast), subjectKey: winnerKey });
-      setTargetSel({ id: winner, label: winner });
-      setTourn(null);
+      const key = `${diseaseName}|_DRUGFREE_|${drug.chembl_id || drug.name}`;
+      setLive({ ...(data as LiveForecast), subjectKey: key, targetFree: true });
+      setTfState(null);
     } catch (e) {
-      setTourn({ drugKey: dKey, state: "error", error: String(e instanceof Error ? e.message : e) });
+      setTfState({ drugKey: dKey, state: "error", error: String(e instanceof Error ? e.message : e) });
     }
   }
 
@@ -246,14 +237,14 @@ export default function Prognosis({
           loading={discovering}
           error={discoverError}
           onRun={runDiscovery}
-          onPick={runTournament}
+          onPick={runTargetFree}
         />
       )}
 
       {/* selection summary */}
       {(report || liveForCurrent) && (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-5">
-          <span className="serif text-[24px]">{symbol}</span>
+          <span className="serif text-[24px]">{symbol || drugs[0]?.name || diseaseName}</span>
           {selectedTarget && <span className="t-muted text-[14px]">{selectedTarget.name}</span>}
           <span className="t-faint">·</span>
           <span className="mono text-[12px] t-muted">{diseaseName}</span>
@@ -279,12 +270,8 @@ export default function Prognosis({
         />
       ) : liveForCurrent ? (
         <>
-          {liveForCurrent.autoTarget && (
-            <AutoTargetBanner
-              winner={liveForCurrent.autoTarget}
-              candidates={liveForCurrent.candidateTargets ?? []}
-              drug={drugs[0]?.name ?? ""}
-            />
+          {liveForCurrent.targetFree && (
+            <TargetFreeBanner drug={drugs[0]?.name ?? ""} drugTargets={liveForCurrent.drugTargets ?? []} />
           )}
           <LiveBanner live={liveForCurrent} />
           <ReportView
@@ -296,8 +283,8 @@ export default function Prognosis({
             keyId={`live:${subjectKey}`}
           />
         </>
-      ) : tournForCurrent ? (
-        <TournamentStatus state={tournForCurrent.state} error={tournForCurrent.error} drug={drugs[0]?.name ?? ""} />
+      ) : tfForCurrent ? (
+        <TargetFreeStatus state={tfForCurrent.state} error={tfForCurrent.error} drug={drugs[0]?.name ?? ""} />
       ) : (
         <LiveForecastPrompt
           diseaseName={diseaseName}
@@ -529,59 +516,38 @@ function DrugDiscoveryPanel({
   );
 }
 
-function AutoTargetBanner({
-  winner,
-  candidates,
-  drug,
-}: {
-  winner: string;
-  candidates: CandidateTargetScore[];
-  drug: string;
-}) {
-  const ranked = [...candidates].filter((c) => c.attrition != null).sort((a, b) => a.attrition! - b.attrition!);
+function TargetFreeBanner({ drug, drugTargets }: { drug: string; drugTargets: string[] }) {
   return (
     <div className="panel p-4 mb-6 rise" style={{ borderColor: "var(--line-2)" }}>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <span className="mono text-[10px] uppercase tracking-wider t-accent">Target auto-selected</span>
-        <span className="serif text-[18px]">{winner}</span>
-        <span className="t-muted text-[12px]">
-          lowest attrition of {candidates.length} candidate target{candidates.length === 1 ? "" : "s"} for{" "}
-          {drug.toLowerCase()}
-        </span>
+        <span className="mono text-[10px] uppercase tracking-wider t-accent">Target-free forecast</span>
+        <span className="serif text-[18px]">{drug.toLowerCase()}</span>
+        <span className="t-muted text-[12px]">attrition computed from the drug and disease, no target</span>
       </div>
-      {ranked.length > 1 && (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {ranked.map((c) => (
-            <span
-              key={c.symbol}
-              className="pill mono text-[11px]"
-              style={{
-                borderColor: c.symbol === winner ? "var(--accent)" : "var(--line-2)",
-                color: c.symbol === winner ? "var(--accent)" : "var(--muted)",
-              }}
-            >
-              {c.symbol} · {c.attrition != null ? `${Math.round(c.attrition * 100)}%` : "—"}
-            </span>
+      {drugTargets.length > 0 && (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <span className="mono text-[10px] t-muted uppercase tracking-wider">acts via</span>
+          {drugTargets.slice(0, 6).map((t) => (
+            <span key={t} className="pill mono text-[11px] t-muted">{t}</span>
           ))}
         </div>
       )}
       <p className="text-[11px] t-muted mt-2 leading-snug max-w-[92ch]">
-        Candidate targets were derived from the drug&apos;s mechanism (Open Targets) and literature, each
-        scored with a quick attrition estimate; the dashboard below is the full computation for the
-        winner. Tournament estimates use raw cohort data and differ slightly from the final number.
+        The validation term is this drug&apos;s own efficacy evidence in this disease (its trials + literature),
+        and the reference cohort is programmes developed for this disease. No single target drives the score.
       </p>
     </div>
   );
 }
 
-function TournamentStatus({ state, error, drug }: { state: "loading" | "error"; error: string; drug: string }) {
+function TargetFreeStatus({ state, error, drug }: { state: "loading" | "error"; error: string; drug: string }) {
   return (
     <div className="panel p-8 text-center mb-16 rise">
       {state === "loading" ? (
         <>
-          <div className="serif text-[22px] mb-2">Selecting the best target for {drug.toLowerCase()}…</div>
+          <div className="serif text-[22px] mb-2">Computing attrition for {drug.toLowerCase()}…</div>
           <p className="mono text-[11px] t-muted">
-            deriving candidate targets · scoring each · picking lowest attrition · running the full dashboard
+            assembling the disease cohort · grading efficacy evidence · scoring · writing the verdict
           </p>
         </>
       ) : (

@@ -7,7 +7,7 @@ import type { Drug } from "./types";
 import type { ForecastResult } from "./forecast";
 
 // Bump when the cached report shape changes so old rows miss and regenerate.
-export const SCHEMA_VERSION = "v4"; // v4: AMASS-enriched per-programme trials (why-stopped/summary)
+export const SCHEMA_VERSION = "v5"; // v5: target-free (drug+disease) path; stale tournament rows miss
 
 export function drugKeyOf(drugs: Drug[]): string {
   return drugs

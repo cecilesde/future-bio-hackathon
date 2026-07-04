@@ -9,18 +9,21 @@
 // Cohort source is Open Targets `drugAndClinicalCandidates` (live, no AMASS
 // credits required) plus Elicit literature. Runs server-side only.
 
-import { computeAttrition, attritionMath, areaOf, phaseOf, type AttritionScore } from "./attrition";
+import {
+  computeAttrition,
+  computeAttritionTargetFree,
+  type AttritionScore,
+} from "./attrition";
 import { extract } from "./llm";
 import { searchPapers, type ElicitPaper } from "./elicit";
 import { restQuery } from "./supabase";
 import { getPatents, getDrugTrials } from "./evidence";
-import { predictTargets } from "./predict";
 import {
   resolveDisease,
   resolveTarget,
   associationFor,
   cohortCandidates,
-  drugTargets,
+  diseaseCohortCandidates,
   type CohortCandidate,
 } from "./opentargets";
 import type {
@@ -41,10 +44,18 @@ import type {
 // raw Open Targets candidate for ground-truth trial detail.
 type CuratedProgram = CohortProgram & { drugId?: string };
 
+// When `subject` is present the forecast is target-free (drug + disease); when
+// absent it is the legacy target path (targetSymbol drives everything).
+export interface SubjectDescriptor {
+  kind: "drug";
+  drugName: string;
+}
+
 export interface ForecastInput {
   diseaseName: string;
   targetSymbol: string;
   drugs: Drug[];
+  subject?: SubjectDescriptor;
 }
 
 export interface ForecastResult {
@@ -198,6 +209,25 @@ async function attachTrials(cohort: CuratedProgram[], cands: CohortCandidate[]):
   return withTrials;
 }
 
+// Subject framing for the LLM prompts: target path uses the target symbol,
+// target-free path uses the drug name. The target branch reproduces the original
+// literals exactly so /api/forecast output is byte-identical.
+function subjectHead(input: ForecastInput): string {
+  return input.subject?.drugName ?? input.targetSymbol;
+}
+function subjectLines(input: ForecastInput, subjectModality: string): { block: string; heading: string } {
+  if (!input.subject) {
+    return {
+      block: `- Disease: ${input.diseaseName}\n- Target: ${input.targetSymbol}\n- Modality: ${subjectModality}`,
+      heading: `Candidate programs acting on ${input.targetSymbol}`,
+    };
+  }
+  return {
+    block: `- Disease: ${input.diseaseName}\n- Drug: ${input.subject.drugName}\n- Modality: ${subjectModality}`,
+    heading: `Similar programmes developed for ${input.diseaseName}`,
+  };
+}
+
 async function curateCohort(
   input: ForecastInput,
   cands: CohortCandidate[],
@@ -206,7 +236,9 @@ async function curateCohort(
   if (cands.length === 0) {
     return {
       cohort: [],
-      cohortSummary: `No clinical or approved programs are recorded against ${input.targetSymbol} in Open Targets, so there is no reference class yet. This is a first-in-class position: the forecast leans on target validation and modality feasibility rather than precedent.`,
+      cohortSummary: input.subject
+        ? `No clinical or approved programs are recorded for ${input.diseaseName} in Open Targets, so there is no reference class yet. The forecast leans on this drug's efficacy evidence and modality feasibility rather than precedent.`
+        : `No clinical or approved programs are recorded against ${input.targetSymbol} in Open Targets, so there is no reference class yet. This is a first-in-class position: the forecast leans on target validation and modality feasibility rather than precedent.`,
     };
   }
 
@@ -243,7 +275,8 @@ async function curateCohort(
 
   const system =
     "You are a drug-development analyst assembling a reference-class cohort. You are given the real drugs/candidates that act on a target (from Open Targets), each with a provenance id, drug type, furthest clinical stage, indications, and trial reports (phase, overall status, why-stopped). Select and annotate the programs most mechanistically analogous to the subject program. You MUST NOT invent programs: every cohort entry's drugId must copy an id present in the input, and its outcome/stage/year must be grounded in that row's data (TERMINATED/SUSPENDED/WITHDRAWN => Failed or Discontinued; COMPLETED at approval stage or maxStage PHASE_4 => Approved; RECRUITING/ACTIVE/ONGOING => Ongoing). Map drug type to the nearest of the four modality values. Judge each program's mechanistic similarity to the subject. Prefer decided (non-ongoing) programs and later stages. Return at most 8." + STYLE;
-  const user = `Subject program:\n- Disease: ${input.diseaseName}\n- Target: ${input.targetSymbol}\n- Modality: ${subjectModality}\n\nCandidate programs acting on ${input.targetSymbol}:\n${cohortLines(rankCandidates(cands).slice(0, 25))}\n\nBuild the reference-class cohort, grounded strictly in the rows above.`;
+  const sl = subjectLines(input, subjectModality);
+  const user = `Subject program:\n${sl.block}\n\n${sl.heading}:\n${cohortLines(rankCandidates(cands).slice(0, 25))}\n\nBuild the reference-class cohort, grounded strictly in the rows above.`;
 
   const data = await extract<CuratedCohort>(system, user, schema, { effort: "low", maxTokens: 3500 });
   const cohort = (data.cohort ?? []).filter((c) => c.drug);
@@ -364,7 +397,7 @@ async function modalityAndRisks(
 
   const system =
     "You are a translational-medicine risk analyst. Given a subject program (disease + target + modality), its real reference-class cohort with each program's failure reason, the literature, and the patent landscape, produce three things: (1) modality feasibility: an overall 0-1 score plus named axes (e.g. stability, permeability, bioavailability, target-tissue access, CMC) each with a 0-1 score and a one-line note; (2) failure modes: the recurring ways THIS program can die, each with a share of total attrition risk (shares ~sum to 1), the mechanism, evidence (cite the cohort's actual failures, the literature, or the patents), a cheap kill experiment, its cost and timeline, and a signal (green=low/monitored, amber=live, red=likely); (3) a derisking plan: the kill experiments ordered by value of information. Ground failure modes in how analogous programs actually failed. The patent landscape informs competitive/freedom-to-operate and differentiation risk. Do not output any probability of overall success; that is computed separately." + STYLE;
-  const user = `Subject: ${input.targetSymbol} in ${input.diseaseName}, modality ${subjectModality}.\n\nReference-class cohort and how each ended:\n${cohortSummary}\n\nLiterature:\n${paperLines(papers)}\n\nPatent landscape (AMASS patentcore):\n${patentLines(patents)}\n\nProduce modality feasibility, failure modes, and the derisking plan.`;
+  const user = `Subject: ${subjectHead(input)} in ${input.diseaseName}, modality ${subjectModality}.\n\nReference-class cohort and how each ended:\n${cohortSummary}\n\nLiterature:\n${paperLines(papers)}\n\nPatent landscape (AMASS patentcore):\n${patentLines(patents)}\n\nProduce modality feasibility, failure modes, and the derisking plan.`;
 
   const data = await extract<ModalityAndRisks>(system, user, schema, { effort: "medium", maxTokens: 4000 });
   return {
@@ -391,7 +424,8 @@ async function judge(
   associationFound: boolean,
   association: number,
   papersCount: number,
-  patentsCount: number
+  patentsCount: number,
+  efficacyLevel?: string
 ): Promise<Judgement> {
   const schema = {
     type: "object",
@@ -413,7 +447,9 @@ async function judge(
     `Computed attrition risk: ${Math.round(score.attrition * 100)}% (probability of failure before approval).`,
     `Dominant driver of the score: ${score.drivenBy}.`,
     `Reference cohort: ${cohort.length} programs (${decided} decided, ${failed} failed/discontinued).`,
-    `Open Targets association: ${associationFound ? association.toFixed(2) : "no association row (neutral prior used)"}.`,
+    input.subject
+      ? `Drug efficacy evidence in this disease: ${efficacyLevel ?? "none"} (${association.toFixed(2)}).`
+      : `Open Targets association: ${associationFound ? association.toFixed(2) : "no association row (neutral prior used)"}.`,
     `Literature retrieved: ${papersCount} papers.`,
     `Patents retrieved: ${patentsCount} (AMASS patentcore).`,
   ].join("\n");
@@ -425,7 +461,7 @@ async function judge(
     "You are the lead forecaster writing the verdict for a drug-program attrition report. You are given the already-computed attrition number and the evidence it was built from. Write the crux verdict (what the program lives or dies on), assign a confidence using the rubric, name the most likely phase of failure, and give the proposer (advance) and skeptic (kill) cases. Do not restate or alter the attrition number. " +
     rubric +
     STYLE;
-  const user = `Subject: ${input.targetSymbol} in ${input.diseaseName}.\n\nEvidence:\n${evidence}\n\nDecomposition terms:\n${score.components.map((c) => `- ${c.label}: ${c.kind === "factor" ? `x${c.value.toFixed(2)}` : `${Math.round(c.value * 100)}%`}`).join("\n")}\n\nWrite the verdict, confidence (with the rubric + adversarial check), most-likely exit phase, and the proposer/skeptic cases.`;
+  const user = `Subject: ${subjectHead(input)} in ${input.diseaseName}.\n\nEvidence:\n${evidence}\n\nDecomposition terms:\n${score.components.map((c) => `- ${c.label}: ${c.kind === "factor" ? `x${c.value.toFixed(2)}` : `${Math.round(c.value * 100)}%`}`).join("\n")}\n\nWrite the verdict, confidence (with the rubric + adversarial check), most-likely exit phase, and the proposer/skeptic cases.`;
 
   const data = await extract<Judgement>(system, user, schema, { effort: "high", maxTokens: 2500 });
   return {
@@ -453,11 +489,11 @@ function toPaper(p: ElicitPaper): Paper {
 }
 
 // ===================================================================== //
-//  Auto-target tournament: (disease + drug, no target) -> best target    //
+//  Target-free helpers (drug + disease, no target)                       //
 // ===================================================================== //
 
-// Deterministic modality prior replacing the LLM modality score in the cheap
-// per-candidate scoring. Literature-anchored, not fitted.
+// Deterministic modality prior (used by the target-free score's cheap step-2
+// ranking). Literature-anchored, not fitted.
 function modalityPrior(moleculeType: string | null): number {
   const t = (moleculeType ?? "").toLowerCase();
   if (t.includes("antibody")) return 0.55;
@@ -495,77 +531,63 @@ export function rawFailFraction(cands: CohortCandidate[]): number | null {
   return decided ? failed / decided : null;
 }
 
-export interface CandidateTargetScore {
-  symbol: string;
-  ensemblId: string | null;
-  attrition: number | null;
-  association: number;
-  failFraction: number | null;
-  resolved: boolean;
+// void the unused-warning on the step-2 helpers until the ranked table lands
+void modalityPrior;
+
+// ---- efficacy-evidence stage: the target-free replacement for the genetic term ----
+export type EfficacyLevel = "strong" | "moderate" | "weak" | "none";
+interface EfficacyResult {
+  level: EfficacyLevel;
+  evidence: number;
+  rationale: string;
 }
-export interface BestTargetResult {
-  winner: string;
-  candidates: CandidateTargetScore[];
-}
+// Deterministic level -> 0-1 mapping that feeds attritionMath's second term.
+// Anchored on the association scale (0.3 = neutral, OR = 1.0). "none" is NEVER a
+// reward: absence of efficacy evidence stays neutral, not high.
+export const EFFICACY_TO_SCORE: Record<EfficacyLevel, number> = {
+  strong: 0.75,
+  moderate: 0.55,
+  weak: 0.4,
+  none: 0.3,
+};
 
-// Candidate targets for a drug: literature-first (Claude+Elicit) unioned with the
-// drug's Open Targets mechanism targets. Both-source symbols rank first. Cap 5.
-async function deriveCandidateTargets(drug: Drug, disease: string): Promise<string[]> {
-  const [lit, mech] = await Promise.all([
-    predictTargets(drug.name, disease)
-      .then((r) => r.targets.map((t) => t.symbol.toUpperCase()))
-      .catch(() => [] as string[]),
-    drug.chembl_id ? drugTargets(drug.chembl_id).catch(() => [] as string[]) : Promise.resolve([] as string[]),
-  ]);
-  const both = lit.filter((s) => mech.includes(s));
-  return [...new Set([...both, ...mech, ...lit])].slice(0, 5);
-}
-
-// Score each candidate target's attrition cheaply (association + raw cohort +
-// modality prior + drug phase), pick the lowest (best odds).
-export async function deriveBestTarget(drug: Drug, diseaseName: string): Promise<BestTargetResult | null> {
-  const disease = await resolveDisease(diseaseName).catch(() => null);
-  const efoId = disease?.id ?? null;
-  const symbols = await deriveCandidateTargets(drug, diseaseName);
-  if (!symbols.length) return null;
-
-  const area = areaOf(diseaseName);
-  const phase = phaseOf(drug.max_phase);
-  const modalityOverall = modalityPrior(drug.molecule_type);
-
-  const scored = await Promise.all(
-    symbols.map(async (symbol): Promise<CandidateTargetScore> => {
-      const t = await resolveTarget(symbol).catch(() => null);
-      if (!t) return { symbol, ensemblId: null, attrition: null, association: NEUTRAL_ASSOC, failFraction: null, resolved: false };
-      const [assoc, cands] = await Promise.all([
-        efoId ? associationFor(t.id, efoId) : Promise.resolve({ association: 0, evidence: [], datatypeScores: {}, found: false }),
-        cohortCandidates(t.id).catch(() => [] as CohortCandidate[]),
-      ]);
-      const association = assoc.found ? assoc.association : NEUTRAL_ASSOC;
-      const failFraction = rawFailFraction(cands);
-      const { attrition } = attritionMath({ area, phase, association, modalityOverall, cohortFailFraction: failFraction, leadMaxPhase: drug.max_phase });
-      return { symbol, ensemblId: t.id, attrition, association, failFraction, resolved: true };
-    })
-  );
-
-  const eligible = scored.filter((c) => c.resolved && c.attrition != null);
-  if (!eligible.length) return null;
-  eligible.sort((a, b) => a.attrition! - b.attrition! || b.association - a.association);
-  return { winner: eligible[0].symbol, candidates: scored };
-}
-
-export interface ForecastByDrugResult extends ForecastResult {
-  candidateTargets: CandidateTargetScore[];
-  autoTarget: string;
-}
-
-// Full dashboard from (disease + drug), no user target: pick the best target, then
-// run the standard forecast for it.
-export async function forecastByDrug(diseaseName: string, drug: Drug): Promise<ForecastByDrugResult | null> {
-  const best = await deriveBestTarget(drug, diseaseName);
-  if (!best) return null;
-  const base = await generateForecast({ diseaseName, targetSymbol: best.winner, drugs: [drug] });
-  return { ...base, candidateTargets: best.candidates, autoTarget: best.winner };
+async function efficacyEvidence(
+  drug: Drug,
+  diseaseName: string,
+  trials: TrialDetail[],
+  papers: ElicitPaper[]
+): Promise<EfficacyResult> {
+  if (!trials.length && !papers.length) {
+    return {
+      level: "none",
+      evidence: 0.3,
+      rationale: `No efficacy evidence for ${drug.name.toLowerCase()} in ${diseaseName} was retrieved.`,
+    };
+  }
+  const schema = {
+    type: "object",
+    additionalProperties: false,
+    required: ["level", "evidence", "rationale"],
+    properties: {
+      level: { type: "string", enum: ["strong", "moderate", "weak", "none"] },
+      evidence: { type: "number", description: "0-1 strength of the efficacy evidence you actually see" },
+      rationale: { type: "string", description: "one sentence, grounded strictly in the trials/literature provided" },
+    },
+  };
+  const trialLines = trials
+    .slice(0, 12)
+    .map((t) => `- ${t.phase || "?"} ${t.status ?? ""}${t.whyStopped ? ` (stopped: ${t.whyStopped})` : ""}${t.title ? ` — ${t.title}` : ""}`)
+    .join("\n");
+  const system =
+    "You are a clinical-evidence analyst. From ONLY the provided trials (this drug) and literature abstracts, judge how strongly the evidence supports that this drug is efficacious in this disease. Grade 'strong' only for positive controlled clinical outcomes with effect size; 'moderate' for suggestive clinical signal; 'weak' for preclinical/anecdotal only; 'none' when the evidence does not address efficacy in this disease. Do NOT reward absence of evidence: missing or off-indication data is 'none', not a high grade. Give a one-sentence rationale citing the specific trial or paper. Do not use em-dashes.";
+  const user = `Drug: ${drug.name}\nDisease: ${diseaseName}\n\nThis drug's trials (AMASS):\n${trialLines || "(none)"}\n\nLiterature (Elicit):\n${paperLines(papers)}\n\nGrade the efficacy evidence for ${drug.name} in ${diseaseName}.`;
+  const data = await extract<EfficacyResult>(system, user, schema, { effort: "low", maxTokens: 900 });
+  const level = (["strong", "moderate", "weak", "none"] as const).includes(data.level) ? data.level : "none";
+  return {
+    level,
+    evidence: typeof data.evidence === "number" ? data.evidence : EFFICACY_TO_SCORE[level],
+    rationale: data.rationale ?? "",
+  };
 }
 
 // ------------------------------------------------------------------- main ----
@@ -666,6 +688,99 @@ export async function generateForecast(input: ForecastInput): Promise<ForecastRe
       trialsAttached: cohort.reduce((n, p) => n + (p.trials?.length ?? 0), 0),
       patentCount: patents.length,
       subjectDrugTrials: subjectDrugTrials.length,
+      generatedAt: now,
+    },
+  };
+}
+
+// ------------------------------------------------------- target-free main ----
+// Full dashboard from (disease + drug), NO target. Same pipeline as
+// generateForecast, but the cohort is the DISEASE's programs and the validation
+// term is the drug's efficacy evidence (not a target's genetics).
+export async function generateForecastTargetFree(diseaseName: string, drug: Drug): Promise<ForecastResult> {
+  const now = new Date().toISOString();
+
+  const disease = await resolveDisease(diseaseName).catch(() => null);
+  const efoId = disease?.id ?? null;
+
+  const [cands, effPapers, patents, drugTrials] = await Promise.all([
+    efoId ? diseaseCohortCandidates(efoId).catch(() => [] as CohortCandidate[]) : Promise.resolve([] as CohortCandidate[]),
+    searchPapers(`${drug.name} efficacy in ${diseaseName}: clinical trial outcomes, effect size`, 8).catch(() => [] as ElicitPaper[]),
+    getPatents(diseaseName, diseaseName).catch(() => [] as Patent[]),
+    getDrugTrials(drug.name).catch(() => [] as TrialDetail[]),
+  ]);
+
+  const input: ForecastInput = {
+    diseaseName,
+    targetSymbol: "",
+    drugs: [drug],
+    subject: { kind: "drug", drugName: drug.name },
+  };
+  const subjectModality = subjectModalityOf([drug]);
+
+  // Stage 1 — curate the DISEASE cohort (existing pipeline, target-free framing).
+  const { cohort: curatedCohort, cohortSummary } = await curateCohort(input, cands, subjectModality);
+  const cohort = await enrichCohortWithAmass(await attachTrials(curatedCohort, cands));
+
+  // Efficacy-evidence stage -> 0-1 (replaces the genetic term).
+  const eff = await efficacyEvidence(drug, diseaseName, drugTrials, effPapers);
+  const efficacyScore = EFFICACY_TO_SCORE[eff.level];
+
+  // Stage 2 — modality feasibility + failure modes + derisking.
+  const mr = await modalityAndRisks(input, cohort, effPapers, patents, subjectModality);
+
+  // Stage 3 — the number (deterministic), with the efficacy-evidence label.
+  const partialReport = { modality: mr.modality, cohort } as unknown as Report;
+  const score = computeAttritionTargetFree({
+    diseaseName,
+    drug,
+    report: partialReport,
+    efficacyEvidence: efficacyScore,
+    efficacyRationale: eff.rationale,
+    efficacyLevel: eff.level,
+  });
+
+  // Stage 4 — verdict, confidence, adversarial.
+  const j = await judge(input, score, cohort, eff.level !== "none", efficacyScore, effPapers.length, patents.length, eff.level);
+
+  const report: Report = {
+    attrition: score.attrition,
+    exitPhase: j.exitPhase,
+    verdict: j.verdict,
+    confidence: j.confidence,
+    confidenceReason: j.confidenceReason,
+    cohortSummary,
+    cohort,
+    failureModes: mr.failureModes,
+    modality: mr.modality,
+    bull: j.bull,
+    bear: j.bear,
+    derisking: mr.derisking,
+    calibration: {
+      nHeldOut: cohort.length,
+      cutoffYear: 0,
+      auprc: 0,
+      baseline: 0,
+      brier: 0,
+      bins: [],
+      note: "Calibration backtest is available only for the authored demo pairs; on-the-fly forecasts are not yet fitted.",
+    },
+  };
+
+  return {
+    report,
+    score,
+    papers: effPapers.map(toPaper),
+    patents,
+    provenance: {
+      efoId,
+      ensemblId: null,
+      associationFound: eff.level !== "none",
+      cohortSize: cohort.length,
+      cohortSource: "open_targets",
+      trialsAttached: cohort.reduce((n, p) => n + (p.trials?.length ?? 0), 0),
+      patentCount: patents.length,
+      subjectDrugTrials: drugTrials.length,
       generatedAt: now,
     },
   };
