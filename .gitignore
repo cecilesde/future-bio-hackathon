@@ -16,3 +16,4 @@ notes.local.md
 data/cache/
 data/artifacts/
 *.parquet
+.vercel
