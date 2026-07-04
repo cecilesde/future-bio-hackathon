@@ -5,6 +5,7 @@ import type { Disease, Report, Paper, Drug } from "@/lib/types";
 import Swimlanes from "./Swimlanes";
 import DrugInput from "./DrugInput";
 import PickerInput, { type PickItem } from "./PickerInput";
+import PredictionPanel from "./PredictionPanel";
 import {
   VerdictBand,
   AttritionComposition,
@@ -108,6 +109,14 @@ export default function Prognosis({
           development stage conditions the attrition base rate.
         </p>
       </section>
+
+      {/* fill-two-predict-third: Claude + Elicit */}
+      <PredictionPanel
+        diseaseName={diseaseName}
+        targetSymbol={symbol}
+        drugNames={drugs.map((d) => d.name)}
+        onSelectTarget={(s) => setTargetSel({ id: s, label: s })}
+      />
 
       {/* selection summary */}
       {report && (
