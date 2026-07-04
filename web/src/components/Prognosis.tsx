@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import type { Disease, Report, TargetAssoc, Paper, Drug } from "@/lib/types";
+import { useState } from "react";
+import type { Disease, Report, Paper, Drug } from "@/lib/types";
 import Swimlanes from "./Swimlanes";
 import DrugInput from "./DrugInput";
+import PickerInput, { type PickItem } from "./PickerInput";
 import {
   VerdictBand,
   AttritionComposition,
@@ -16,7 +17,14 @@ import {
 } from "./report-parts";
 import { computeAttrition } from "@/lib/attrition";
 
-const pct = (x: number) => `${Math.round(x * 100)}%`;
+// Map a typed disease label to an authored (modeled) disease id, or null.
+function resolveDiseaseId(label: string | undefined): string | null {
+  if (!label) return null;
+  const n = label.toLowerCase();
+  if (n.includes("obesity") || n.includes("overweight")) return "obesity";
+  if (n.includes("alzheimer")) return "alzheimers";
+  return null;
+}
 
 export default function Prognosis({
   diseases,
@@ -28,36 +36,22 @@ export default function Prognosis({
   literature: Record<string, Paper[]>;
 }) {
   const getReport = (d: string, s: string): Report | null => reports[`${d}:${s}`] ?? null;
-  // default to the highest-association target that has a modeled forecast
-  const defaultSymbol = (d: Disease) => {
-    if (!d?.targets?.length) return "";
-    const sorted = [...d.targets].sort((a, b) => b.association - a.association);
-    return (sorted.find((t) => getReport(d.id, t.symbol)) ?? sorted[0]).symbol;
-  };
 
-  const [diseaseId, setDiseaseId] = useState(diseases[0].id);
-  const [symbol, setSymbol] = useState(() => defaultSymbol(diseases[0]));
+  const [diseaseSel, setDiseaseSel] = useState<PickItem | null>({ id: "Obesity", label: "Obesity" });
+  const [targetSel, setTargetSel] = useState<PickItem | null>({ id: "GLP1R", label: "GLP1R" });
   const [drugs, setDrugs] = useState<Drug[]>([]);
 
-  const disease = useMemo(
-    () => diseases.find((d) => d.id === diseaseId)!,
-    [diseaseId, diseases]
-  );
-  const targets = useMemo(
-    () => [...disease.targets].sort((a, b) => b.association - a.association),
-    [disease]
-  );
-  const report = getReport(diseaseId, symbol);
-  const selected = disease.targets.find((t) => t.symbol === symbol) ?? null;
-  const score = report
-    ? computeAttrition({ report, target: selected, drugs, diseaseName: disease.name })
-    : null;
+  const diseaseId = resolveDiseaseId(diseaseSel?.label);
+  const authoredDisease = diseases.find((d) => d.id === diseaseId) ?? null;
+  const symbol = (targetSel?.id ?? "").toUpperCase();
+  const diseaseName = diseaseSel?.label ?? "";
 
-  function pickDisease(id: string) {
-    setDiseaseId(id);
-    const d = diseases.find((x) => x.id === id)!;
-    setSymbol(defaultSymbol(d));
-  }
+  const report = diseaseId && symbol ? getReport(diseaseId, symbol) : null;
+  const selectedTarget =
+    authoredDisease?.targets.find((t) => t.symbol.toUpperCase() === symbol) ?? null;
+  const score = report
+    ? computeAttrition({ report, target: selectedTarget, drugs, diseaseName })
+    : null;
 
   return (
     <div className="max-w-[1120px] mx-auto px-4 sm:px-6">
@@ -65,96 +59,71 @@ export default function Prognosis({
 
       {/* pipeline breadcrumb */}
       <nav className="mono text-[11px] t-muted flex flex-wrap items-center gap-2 mb-4">
-        <Crumb active label="Disease" />
+        <span className="t-accent">Disease</span>
+        <span className="t-faint">·</span>
+        <span className="t-accent">Target</span>
+        <span className="t-faint">·</span>
+        <span className="t-accent">Drug</span>
         <span className="t-accent">›</span>
-        <Crumb label="Targets · Open Targets" />
+        <span>predict the third</span>
         <span className="t-accent">›</span>
-        <Crumb label="Selected target" />
-        <span className="t-accent">›</span>
-        <Crumb label="Reference-class forecast" />
+        <span>reference-class forecast</span>
       </nav>
 
-      {/* query: disease + target */}
+      {/* three typed inputs */}
       <section className="panel p-4 sm:p-5 mb-8">
-        <div className="grid gap-5 md:grid-cols-[260px_1fr]">
-          {/* disease */}
+        <div className="grid gap-4 md:grid-cols-3">
           <div>
             <label className="eyebrow block mb-2">Disease</label>
-            <div className="flex flex-col gap-2">
-              {diseases.map((d) => {
-                const on = d.id === diseaseId;
-                return (
-                  <button
-                    key={d.id}
-                    onClick={() => pickDisease(d.id)}
-                    className="text-left rounded-md px-3 py-2 transition-colors"
-                    style={{
-                      background: on ? "var(--accent-dim)" : "var(--bg-2)",
-                      border: `1px solid ${on ? "var(--accent)" : "var(--line-2)"}`,
-                    }}
-                  >
-                    <div className="text-[15px]" style={{ color: on ? "var(--accent)" : "var(--ink)" }}>
-                      {d.name}
-                    </div>
-                    <div className="mono text-[10px] t-muted mt-0.5">{d.synonym}</div>
-                  </button>
-                );
-              })}
-            </div>
-            <p className="text-[11.5px] t-muted mt-3 leading-snug">
-              Targets are ranked by Open Targets association. Pick one to forecast its clinical
-              attrition against its historical reference class.
+            <PickerInput
+              value={diseaseSel}
+              onSelect={setDiseaseSel}
+              endpoint="/api/diseases"
+              placeholder="Type a disease…"
+            />
+            <p className="mono text-[10px] mt-1" style={{ color: diseaseId ? "var(--green)" : "var(--faint)" }}>
+              {diseaseId ? "● modeled disease" : "AMASS disease set · autocomplete"}
             </p>
           </div>
-
-          {/* targets */}
           <div>
-            <label className="eyebrow block mb-2">
-              Targets for {disease.name} · ranked by association
-            </label>
-            <div className="grid gap-2">
-              {targets.map((t) => (
-                <TargetRow
-                  key={t.symbol}
-                  t={t}
-                  selected={t.symbol === symbol}
-                  modeled={!!getReport(diseaseId, t.symbol)}
-                  onSelect={() => setSymbol(t.symbol)}
-                />
-              ))}
-            </div>
+            <label className="eyebrow block mb-2">Target</label>
+            <PickerInput
+              value={targetSel}
+              onSelect={setTargetSel}
+              endpoint="/api/targets"
+              placeholder="Type a target, any gene…"
+              allowFreeText
+            />
+            <p className="mono text-[10px] t-muted mt-1">Open Targets · or any gene, free-form</p>
+          </div>
+          <div>
+            <label className="eyebrow block mb-2">Drug(s)</label>
+            <DrugInput selected={drugs} onChange={setDrugs} />
+            <p className="mono text-[10px] t-muted mt-1">ChEMBL · approved + experimental</p>
           </div>
         </div>
-
-        {/* drug input (third input) */}
-        <div className="mt-5 pt-5 hairline">
-          <label className="eyebrow block mb-2">
-            Drugs · optional · condition the forecast on specific compounds
-          </label>
-          <DrugInput selected={drugs} onChange={setDrugs} />
-          <p className="text-[11.5px] t-muted mt-2 leading-snug max-w-[80ch]">
-            Search approved or experimental drugs (ChEMBL, 16,784 compounds). Selecting a drug
-            will condition the attrition forecast: a compound already in Phase 3 carries very
-            different risk from a preclinical one. The scoring model that consumes this is in
-            progress.
-          </p>
-        </div>
+        <p className="text-[11.5px] t-muted mt-4 leading-snug max-w-[92ch]">
+          Fill any two of disease · target · drug and the third is predicted (the evidence engine
+          that resolves untyped inputs from Elicit + AMASS is in progress). The drug&apos;s
+          development stage conditions the attrition base rate.
+        </p>
       </section>
 
       {/* selection summary */}
-      {selected && (
+      {report && (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-5">
-          <span className="serif text-[24px]">{selected.symbol}</span>
-          <span className="t-muted text-[14px]">{selected.name}</span>
+          <span className="serif text-[24px]">{symbol}</span>
+          {selectedTarget && <span className="t-muted text-[14px]">{selectedTarget.name}</span>}
           <span className="t-faint">·</span>
-          <span className="mono text-[12px] t-muted">{disease.name}</span>
-          {report && (
-            <>
-              <span className="t-faint">·</span>
-              <span className="pill" style={{ borderColor: "var(--line-2)" }}>
-                {report.modality.modality}
-              </span>
-            </>
+          <span className="mono text-[12px] t-muted">{diseaseName}</span>
+          <span className="t-faint">·</span>
+          <span className="pill" style={{ borderColor: "var(--line-2)" }}>
+            {report.modality.modality}
+          </span>
+          {drugs.length > 0 && (
+            <span className="mono text-[11px] t-accent">
+              + {drugs.map((d) => d.name.toLowerCase()).join(", ")}
+            </span>
           )}
         </div>
       )}
@@ -194,7 +163,7 @@ export default function Prognosis({
           <CalibrationPanel cal={report.calibration} />
         </div>
       ) : (
-        <NotModeled symbol={symbol} disease={disease.name} note={selected?.note} />
+        <NotModeled diseaseName={diseaseName} symbol={symbol} />
       )}
     </div>
   );
@@ -208,91 +177,28 @@ function Header() {
       </h1>
       <p className="text-[15px] t-muted mt-4 max-w-[72ch] leading-relaxed">
         A reference-class forecaster for drug-program attrition. Give it a disease, a target and a
-        modality; it retrieves the historical programs most mechanistically like yours, shows how
-        they died, names each failure mode, and prices the experiment that resolves it early. The
-        score is earned on held-out history, not asserted.
+        drug; it retrieves the historical programs most mechanistically like yours, shows how they
+        died, names each failure mode, and prices the experiment that resolves it early. The score
+        is earned on held-out history, not asserted.
       </p>
     </header>
   );
 }
 
-function Crumb({ label, active }: { label: string; active?: boolean }) {
-  return (
-    <span style={{ color: active ? "var(--accent)" : undefined }}>{label}</span>
-  );
-}
-
-function TargetRow({
-  t,
-  selected,
-  modeled,
-  onSelect,
-}: {
-  t: TargetAssoc;
-  selected: boolean;
-  modeled: boolean;
-  onSelect: () => void;
-}) {
-  return (
-    <button
-      onClick={onSelect}
-      className="text-left rounded-md p-3 transition-colors"
-      style={{
-        background: selected ? "var(--accent-dim)" : "var(--bg-2)",
-        border: `1px solid ${selected ? "var(--accent)" : "var(--line-2)"}`,
-      }}
-    >
-      <div className="flex items-center gap-3">
-        <span className="mono text-[14px] font-semibold w-16 flex-none" style={{ color: selected ? "var(--accent)" : "var(--ink)" }}>
-          {t.symbol}
-        </span>
-        <span className="text-[13px] t-dim truncate flex-1 min-w-0">{t.name}</span>
-        <div className="flex items-center gap-2 flex-none w-[130px]">
-          <div className="meter flex-1">
-            <span style={{ width: pct(t.association), background: "var(--accent)" }} />
-          </div>
-          <span className="mono text-[12px] tabular-nums t-muted w-8 text-right">
-            {t.association.toFixed(2)}
-          </span>
-        </div>
-      </div>
-      <div className="flex flex-wrap items-center gap-1.5 mt-2 pl-[76px]">
-        {t.evidence.map((e) => (
-          <span
-            key={e}
-            className="mono text-[10px] px-1.5 py-0.5 rounded"
-            style={{ background: "rgba(255,255,255,0.03)", border: "1px solid var(--line)", color: "var(--muted)" }}
-          >
-            {e}
-          </span>
-        ))}
-        <span
-          className="mono text-[10px] px-1.5 py-0.5 rounded ml-auto"
-          style={{
-            color: modeled ? "var(--green)" : "var(--faint)",
-            border: `1px solid ${modeled ? "var(--green-dim)" : "var(--line)"}`,
-          }}
-        >
-          {modeled ? "● modeled" : "○ not modeled"}
-        </span>
-      </div>
-    </button>
-  );
-}
-
-function NotModeled({ symbol, disease, note }: { symbol: string; disease: string; note?: string }) {
+function NotModeled({ diseaseName, symbol }: { diseaseName: string; symbol: string }) {
+  const both = diseaseName && symbol;
   return (
     <div className="panel p-8 text-center mb-16 rise">
       <div className="serif text-[22px] mb-2">
-        No forecast yet for {symbol} in {disease}
+        {both ? `No modeled forecast for ${symbol} in ${diseaseName}` : "Enter a disease and a target"}
       </div>
-      <p className="t-muted text-[14px] max-w-[60ch] mx-auto leading-relaxed">
-        Prognosis models a pair by retrieving its mechanistic reference class and its historical
-        outcomes. This pair is outside the demo set, so no cohort has been assembled.
-        {note ? ` Open Targets note: ${note}` : ""}
+      <p className="t-muted text-[14px] max-w-[62ch] mx-auto leading-relaxed">
+        A full forecast is currently authored for a small demo set of pairs. For any other pair,
+        the evidence engine (Elicit literature + AMASS trials) that assembles the reference class
+        and resolves untyped inputs is in progress.
       </p>
       <p className="mono text-[12px] t-accent mt-4">
-        Try GLP1R or MC4R (Obesity), or BACE1 (Alzheimer&apos;s).
+        Try Obesity + GLP1R, Obesity + MC4R, or Alzheimer&apos;s + BACE1.
       </p>
     </div>
   );
