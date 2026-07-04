@@ -60,7 +60,7 @@ function paperLines(papers: ElicitPaper[]): string {
 }
 
 export async function discoverDrugs(diseaseName: string): Promise<DiscoveredDrug[]> {
-  const cacheKey = keyOf("discovery_v2", diseaseName); // v2: + per-drug attrition
+  const cacheKey = keyOf("discovery_v4", diseaseName); // v4: per-drug efficacy-based attrition
   const cached = await readCache<DiscoveredDrug>(cacheKey);
   if (cached) return cached;
 
@@ -130,7 +130,7 @@ export async function discoverDrugs(diseaseName: string): Promise<DiscoveredDrug
     });
   }
 
-  // cheap target-free attrition per drug (shared disease cohort, no LLM), for the table
+  // target-free attrition per drug (shared disease cohort + per-drug efficacy grade), for the table
   const scored = await scoreDrugsTargetFree(
     diseaseName,
     out.map((d) => d.drug).filter((d): d is Drug => !!d)
@@ -149,6 +149,6 @@ export async function discoverDrugs(diseaseName: string): Promise<DiscoveredDrug
     return (a.status === "approved" ? 0 : 1) - (b.status === "approved" ? 0 : 1);
   });
 
-  if (out.length) await writeCache(cacheKey, "discovery_v2", diseaseName, out);
+  if (out.length) await writeCache(cacheKey, "discovery_v4", diseaseName, out);
   return out;
 }

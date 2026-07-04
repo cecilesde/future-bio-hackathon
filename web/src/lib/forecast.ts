@@ -20,7 +20,7 @@ import {
 import { extract } from "./llm";
 import { searchPapers, type ElicitPaper } from "./elicit";
 import { restQuery } from "./supabase";
-import { getPatents, getDrugTrials } from "./evidence";
+import { getPatents, getDrugTrials, keyOf, readCache, writeCache } from "./evidence";
 import {
   resolveDisease,
   resolveTarget,
@@ -534,25 +534,15 @@ export function rawFailFraction(cands: CohortCandidate[]): number | null {
   return decided ? failed / decided : null;
 }
 
-// Cheap efficacy proxy from a drug's furthest development stage (no LLM), for the
-// disease-only ranked table. Approved/late-stage => stronger; anchored on the
-// same 0.3 neutral as EFFICACY_TO_SCORE.
-function efficacyProxy(maxPhase: number | null): number {
-  if (maxPhase == null) return 0.3;
-  if (maxPhase >= 4) return 0.7;
-  if (maxPhase >= 3) return 0.6;
-  if (maxPhase >= 2) return 0.45;
-  return 0.3;
-}
-
 export interface DrugAttritionScore {
   attrition: number;
-  efficacyProxy: number;
+  efficacyLevel: EfficacyLevel;
 }
 
-// Rank a set of drugs for a disease by a CHEAP target-free attrition (no LLM):
-// one shared disease cohort + a phase-based efficacy proxy + modality prior. The
-// full generateForecastTargetFree is the authoritative number on selection.
+// Rank a set of drugs for a disease by a target-free attrition score. Each drug
+// gets its OWN efficacy grade (per-drug LLM, cached), which is what differentiates
+// drugs at the same phase/modality; the disease cohort + area are shared. The full
+// generateForecastTargetFree remains the authoritative number on selection.
 export async function scoreDrugsTargetFree(
   diseaseName: string,
   drugs: Drug[]
@@ -563,19 +553,35 @@ export async function scoreDrugsTargetFree(
   const sharedFail = rawFailFraction(cands);
   const area = areaOf(diseaseName);
 
-  const out = new Map<string, DrugAttritionScore>();
-  for (const drug of drugs) {
-    const proxy = efficacyProxy(drug.max_phase);
+  // cap concurrency so a 20-drug disease doesn't fire 20 LLM calls at once
+  const scored = await mapPool(drugs, 6, async (drug) => {
+    const eff = await efficacyFor(drug, diseaseName).catch(
+      () => ({ level: "none" as EfficacyLevel, evidence: 0.3, rationale: "" })
+    );
     const { attrition } = attritionMath({
       area,
       phase: phaseOf(drug.max_phase),
-      association: proxy,
+      association: efficacyScoreOf(eff),
       modalityOverall: modalityPrior(drug.molecule_type),
       cohortFailFraction: sharedFail,
       leadMaxPhase: drug.max_phase,
     });
-    out.set(drug.chembl_id || drug.name, { attrition, efficacyProxy: proxy });
+    return [drug.chembl_id || drug.name, { attrition, efficacyLevel: eff.level }] as const;
+  });
+  return new Map(scored);
+}
+
+// bounded-concurrency map (preserves order)
+async function mapPool<T, R>(items: T[], limit: number, fn: (t: T) => Promise<R>): Promise<R[]> {
+  const out = new Array<R>(items.length);
+  let i = 0;
+  async function worker() {
+    while (i < items.length) {
+      const idx = i++;
+      out[idx] = await fn(items[idx]);
+    }
   }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
   return out;
 }
 
@@ -595,6 +601,15 @@ export const EFFICACY_TO_SCORE: Record<EfficacyLevel, number> = {
   weak: 0.4,
   none: 0.3,
 };
+
+// The value that feeds attritionMath's second term. Blends the level bucket
+// (reproducible anchor) with the model's continuous 0-1 evidence, so drugs at the
+// same level still differentiate (e.g. two "strong" approved drugs don't tie).
+function efficacyScoreOf(eff: EfficacyResult): number {
+  const anchor = EFFICACY_TO_SCORE[eff.level];
+  const raw = typeof eff.evidence === "number" ? Math.max(0, Math.min(1, eff.evidence)) : anchor;
+  return Math.max(0.05, Math.min(0.95, 0.5 * anchor + 0.5 * raw));
+}
 
 async function efficacyEvidence(
   drug: Drug,
@@ -633,6 +648,30 @@ async function efficacyEvidence(
     evidence: typeof data.evidence === "number" ? data.evidence : EFFICACY_TO_SCORE[level],
     rationale: data.rationale ?? "",
   };
+}
+
+// Cached per-drug efficacy grade for (drug, disease). One AMASS/Elicit/LLM cost at
+// most per pair, ever. Both the ranked table and the full dashboard read this, so
+// the estimate and the dashboard's efficacy term agree. Callers may pass already
+// fetched trials/papers to avoid re-fetching.
+async function efficacyFor(
+  drug: Drug,
+  diseaseName: string,
+  trials?: TrialDetail[],
+  papers?: ElicitPaper[]
+): Promise<EfficacyResult> {
+  const ref = `${drug.chembl_id || drug.name}|${diseaseName}`;
+  const cacheKey = keyOf("efficacy", ref);
+  const cached = await readCache<EfficacyResult>(cacheKey);
+  if (cached && cached.length) return cached[0];
+
+  const [t, p] = await Promise.all([
+    trials ?? getDrugTrials(drug.name).catch(() => [] as TrialDetail[]),
+    papers ?? searchPapers(`${drug.name} efficacy in ${diseaseName}: clinical trial outcomes, effect size`, 6).catch(() => [] as ElicitPaper[]),
+  ]);
+  const eff = await efficacyEvidence(drug, diseaseName, t, p);
+  await writeCache(cacheKey, "efficacy", ref, [eff]);
+  return eff;
 }
 
 // ------------------------------------------------------------------- main ----
@@ -767,9 +806,10 @@ export async function generateForecastTargetFree(diseaseName: string, drug: Drug
   const { cohort: curatedCohort, cohortSummary } = await curateCohort(input, cands, subjectModality);
   const cohort = await enrichCohortWithAmass(await attachTrials(curatedCohort, cands));
 
-  // Efficacy-evidence stage -> 0-1 (replaces the genetic term).
-  const eff = await efficacyEvidence(drug, diseaseName, drugTrials, effPapers);
-  const efficacyScore = EFFICACY_TO_SCORE[eff.level];
+  // Efficacy-evidence stage -> 0-1 (replaces the genetic term). Cached per
+  // (drug, disease) so it matches the ranked-table estimate exactly.
+  const eff = await efficacyFor(drug, diseaseName, drugTrials, effPapers);
+  const efficacyScore = efficacyScoreOf(eff);
 
   // Stage 2 — modality feasibility + failure modes + derisking.
   const mr = await modalityAndRisks(input, cohort, effPapers, patents, subjectModality);
