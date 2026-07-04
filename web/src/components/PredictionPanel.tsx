@@ -35,13 +35,19 @@ export default function PredictionPanel({
   drugNames: string[];
   onSelectTarget: (symbol: string) => void;
 }) {
-  const [result, setResult] = useState<Result | null>(null);
+  const [state, setState] = useState<{ key: string; data: Result } | null>(null);
   const [loading, setLoading] = useState(false);
 
   const drug = drugNames[0]?.toLowerCase() ?? "";
   const hasDrug = !!drug;
   const hasDisease = !!diseaseName.trim();
   const hasTarget = !!targetSymbol.trim();
+
+  // Tie the result to the inputs it was computed for. When disease/target/drug
+  // change, `result` derives back to null so the panel is empty until the user
+  // runs the prediction again (no stale prior-query targets).
+  const queryKey = `${diseaseName.trim().toLowerCase()}|${targetSymbol.trim().toUpperCase()}|${drug}`;
+  const result = state && state.key === queryKey ? state.data : null;
 
   // which prediction applies
   const mode: "targets" | "evidence" | null =
@@ -54,17 +60,18 @@ export default function PredictionPanel({
       : `Check the evidence that ${drug} interacts with ${targetSymbol}`;
 
   async function run() {
+    const key = queryKey;
     setLoading(true);
-    setResult(null);
+    setState(null);
     try {
       const r = await fetch("/api/predict", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ disease: diseaseName, target: targetSymbol, drug }),
       });
-      setResult(await r.json());
+      setState({ key, data: await r.json() });
     } catch {
-      setResult({ mode: "error", error: "request failed" });
+      setState({ key, data: { mode: "error", error: "request failed" } });
     } finally {
       setLoading(false);
     }

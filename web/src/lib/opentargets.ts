@@ -95,7 +95,18 @@ export interface CohortReport {
   phase: string | null;
   status: string | null; // e.g. TERMINATED, COMPLETED, RECRUITING
   whyStopped: string | null;
+  stopReasonCategories: string[];
+  startDate: string | null;
   year: number | null;
+  title: string | null;
+  url: string | null;
+  nctId: string | null; // parsed from the url (NCT\d+)
+}
+
+const NCT_RE = /NCT\d{8}/i;
+function nctFrom(url: string | null | undefined, title: string | null | undefined): string | null {
+  const m = (url ?? "").match(NCT_RE) ?? (title ?? "").match(NCT_RE);
+  return m ? m[0].toUpperCase() : null;
 }
 export interface CohortCandidate {
   drugId: string;
@@ -116,7 +127,7 @@ export async function cohortCandidates(ensemblId: string): Promise<CohortCandida
           maxClinicalStage
           drug{ id name drugType maximumClinicalStage }
           diseases{ disease{ id name } }
-          clinicalReports{ trialPhase trialOverallStatus trialWhyStopped year }
+          clinicalReports{ trialPhase trialOverallStatus trialWhyStopped trialStopReasonCategories trialStartDate year title url }
         }
       }
     }
@@ -128,7 +139,16 @@ export async function cohortCandidates(ensemblId: string): Promise<CohortCandida
           maxClinicalStage: string | null;
           drug: { id: string; name: string; drugType: string | null; maximumClinicalStage: string | null } | null;
           diseases: ({ disease: { id: string; name: string } | null } | null)[] | null;
-          clinicalReports: { trialPhase: string | null; trialOverallStatus: string | null; trialWhyStopped: string | null; year: number | null }[] | null;
+          clinicalReports: {
+            trialPhase: string | null;
+            trialOverallStatus: string | null;
+            trialWhyStopped: string | null;
+            trialStopReasonCategories: string[] | null;
+            trialStartDate: string | null;
+            year: number | null;
+            title: string | null;
+            url: string | null;
+          }[] | null;
         }[];
       } | null;
     } | null;
@@ -146,12 +166,17 @@ export async function cohortCandidates(ensemblId: string): Promise<CohortCandida
         ),
       ];
       const reports = (r.clinicalReports ?? [])
-        .filter((rep) => rep.trialOverallStatus || rep.trialPhase || rep.trialWhyStopped)
+        .filter((rep) => rep.trialOverallStatus || rep.trialPhase || rep.trialWhyStopped || rep.trialStartDate)
         .map((rep) => ({
           phase: rep.trialPhase,
           status: rep.trialOverallStatus,
           whyStopped: rep.trialWhyStopped,
+          stopReasonCategories: (rep.trialStopReasonCategories ?? []).filter((c): c is string => !!c),
+          startDate: rep.trialStartDate,
           year: rep.year,
+          title: rep.title,
+          url: rep.url,
+          nctId: nctFrom(rep.url, rep.title),
         }));
       return {
         drugId: r.drug!.id,

@@ -344,6 +344,26 @@ provenance block gains `amassTrialsUsed` counts (subject-drug, target-cohort) so
 
 ---
 
+## Part F-built — AMASS patents + runtime drug-trial search (SHIPPED 2026-07-04)
+
+Once the new AMASS key landed, the credit-gated parts of Part F were built and verified live:
+- **`web/src/lib/amass.ts`** — runtime callers: `searchPatents` (patentcore) and `searchDrugTrials`
+  (trialcore). Sparing by design: single query, small limits (6 patents / 15 trials), no bulk
+  `search_union`, graceful `[]` on 403 (out of credits) so the forecast still runs AMASS-free.
+- **`web/src/lib/evidence.ts` + `pg_evidence` table** — cache-through so each AMASS query spends a
+  credit AT MOST ONCE ever: patents keyed by (disease+target), drug-trials keyed by drug name. On
+  out-of-credits nothing is cached, so a later top-up retries cleanly. Verified: a 2nd identical
+  `getPatents` call served from cache in 85ms with no AMASS hit.
+- **Patents folded into the same evidence stream as Elicit** — passed into the modality/failure-mode
+  stage and the verdict stage (competitive / freedom-to-operate / differentiation signal), returned
+  in the forecast result, and rendered as a "Patent landscape" panel (report-parts `PatentsPanel`).
+- **Runtime drug-trial search** — for each drug the user types, its AMASS trials are fetched (cached
+  per drug) and merged into the matching cohort program's trials; counts surface in provenance.
+- **Verified in prod:** obesity/GLP1R → 6 real patents (vTv, Novartis, Regeneron); T2D+GLP1R with
+  semaglutide → 6 patents + 15 semaglutide trials merged, attrition 1.6% (approved drug, correct).
+- Still deferred: writing accreted AMASS trials into `pg_trials`/`pg_drug_trials` as a growing
+  corpus (D2 seed promotion). Patents/drug-trials currently persist in `pg_evidence`, not `pg_trials`.
+
 ## Part G — Build status (what is live)
 
 **Shipped (2026-07-04), D1 + D3, AMASS-free, live in production:**

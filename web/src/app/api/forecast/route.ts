@@ -15,8 +15,13 @@ function drugKeyOf(drugs: Drug[]): string {
     .join(",");
 }
 
+// Bump when the cached report shape changes so old rows miss and regenerate.
+const SCHEMA_VERSION = "v3"; // v3: + AMASS patents and subject-drug trials
+
 function cacheKey(disease: string, target: string, drugKey: string): string {
-  return createHash("sha1").update(`${disease.toLowerCase()}|${target.toUpperCase()}|${drugKey}`).digest("hex");
+  return createHash("sha1")
+    .update(`${SCHEMA_VERSION}|${disease.toLowerCase()}|${target.toUpperCase()}|${drugKey}`)
+    .digest("hex");
 }
 
 // Best-effort cache write with the service role (bypasses RLS). Never throws.
@@ -41,6 +46,7 @@ async function writeCache(key: string, disease: string, target: string, drugKey:
         report: r.report,
         score: r.score,
         papers: r.papers,
+        patents: r.patents,
         provenance: r.provenance,
       }),
       cache: "no-store",
@@ -54,6 +60,7 @@ interface CacheRow {
   report: ForecastResult["report"];
   score: ForecastResult["score"];
   papers: ForecastResult["papers"];
+  patents: ForecastResult["patents"];
   provenance: ForecastResult["provenance"];
 }
 
@@ -78,7 +85,7 @@ export async function POST(req: NextRequest) {
   // cache read (anon)
   try {
     const hit = await restQuery<CacheRow>(
-      `forecast_cache?cache_key=eq.${key}&select=report,score,papers,provenance&limit=1`
+      `forecast_cache?cache_key=eq.${key}&select=report,score,papers,patents,provenance&limit=1`
     );
     if (hit.length) {
       return NextResponse.json({ ...hit[0], cached: true });

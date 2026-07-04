@@ -12,6 +12,8 @@
 import { computeAttrition, type AttritionScore } from "./attrition";
 import { extract } from "./llm";
 import { searchPapers, type ElicitPaper } from "./elicit";
+import { restQuery } from "./supabase";
+import { getPatents, getDrugTrials } from "./evidence";
 import {
   resolveDisease,
   resolveTarget,
@@ -26,9 +28,16 @@ import type {
   ModalityFeasibility,
   DeriskingStep,
   TargetAssoc,
+  TrialDetail,
+  Patent,
   Drug,
   Paper,
 } from "./types";
+
+// The LLM returns a drugId provenance token on each program (schema-required);
+// it is not part of the public CohortProgram type but is used to join back to the
+// raw Open Targets candidate for ground-truth trial detail.
+type CuratedProgram = CohortProgram & { drugId?: string };
 
 export interface ForecastInput {
   diseaseName: string;
@@ -40,12 +49,16 @@ export interface ForecastResult {
   report: Report;
   score: AttritionScore;
   papers: Paper[];
+  patents: Patent[];
   provenance: {
     efoId: string | null;
     ensemblId: string | null;
     associationFound: boolean;
     cohortSize: number;
     cohortSource: "open_targets";
+    trialsAttached: number;
+    patentCount: number;
+    subjectDrugTrials: number; // AMASS trials fetched for the input drug(s)
     generatedAt: string;
   };
 }
@@ -75,6 +88,13 @@ function paperLines(papers: ElicitPaper[]): string {
     .join("\n\n");
 }
 
+function patentLines(patents: Patent[]): string {
+  if (!patents.length) return "(no patents retrieved)";
+  return patents
+    .map((p, i) => `[P${i + 1}] ${p.title}${p.assignee ? ` — ${p.assignee}` : ""}${p.date ? ` (${p.date.slice(0, 4)})` : ""}\n${(p.abstract ?? "").slice(0, 400)}`)
+    .join("\n\n");
+}
+
 // Rank raw candidates so the most informative ones survive the token cap:
 // decided outcomes and later stages first.
 function rankCandidates(cands: CohortCandidate[]): CohortCandidate[] {
@@ -91,8 +111,83 @@ function rankCandidates(cands: CohortCandidate[]): CohortCandidate[] {
 
 // ---------------------------------------------------------------- Stage 1 ----
 interface CuratedCohort {
-  cohort: CohortProgram[];
+  cohort: CuratedProgram[];
   cohortSummary: string;
+}
+
+const STAGE_RANK: Record<string, number> = {
+  PHASE_4: 5, PHASE4: 5, PHASE_3: 4, PHASE3: 4, PHASE_2: 3, PHASE2: 3,
+  PHASE_1: 2, PHASE1: 2, EARLY_PHASE_1: 1, PRECLINICAL: 0,
+};
+const MAX_TRIALS_PER_PROGRAM = 15;
+
+// Join each curated program back to its raw Open Targets candidate (by drugId,
+// then drug name) and attach the real trials. Ground-truth structured data, not
+// LLM prose. Then best-effort enrich each trial's completion date from pg_trials
+// by NCT id (the only date pg_trials can supply for a cohort drug).
+async function attachTrials(cohort: CuratedProgram[], cands: CohortCandidate[]): Promise<CohortProgram[]> {
+  const byId = new Map(cands.map((c) => [c.drugId, c]));
+  const byName = new Map(cands.map((c) => [c.drugName.toLowerCase(), c]));
+
+  const withTrials = cohort.map((p) => {
+    const cand = (p.drugId && byId.get(p.drugId)) || byName.get(p.drug.toLowerCase());
+    // strip the internal drugId from the public object
+    const { drugId: _drop, ...program } = p;
+    void _drop;
+    if (!cand) return program as CohortProgram;
+
+    const seen = new Set<string>();
+    const trials: TrialDetail[] = cand.reports
+      .map((r) => ({
+        phase: r.phase ?? "",
+        status: r.status,
+        startDate: r.startDate,
+        completionDate: null as string | null,
+        whyStopped: r.whyStopped,
+        stopReasonCategories: r.stopReasonCategories ?? [],
+        title: r.title,
+        url: r.url,
+        nctId: r.nctId,
+      }))
+      .filter((t) => {
+        const k = t.nctId ?? `${t.title ?? ""}|${t.phase}|${t.startDate ?? ""}`;
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      })
+      // Most informative first: trials with a stoppage reason, then later phase,
+      // then most recent. Some drugs have 100+ trials; cap to keep payload sane.
+      .sort((a, b) => {
+        const wa = a.whyStopped ? 1 : 0;
+        const wb = b.whyStopped ? 1 : 0;
+        if (wb !== wa) return wb - wa;
+        const sr = (STAGE_RANK[b.phase] ?? 0) - (STAGE_RANK[a.phase] ?? 0);
+        if (sr) return sr;
+        return (b.startDate ?? "").localeCompare(a.startDate ?? "");
+      })
+      .slice(0, MAX_TRIALS_PER_PROGRAM);
+
+    return { ...program, trials } as CohortProgram;
+  });
+
+  // best-effort completion-date enrichment from pg_trials (harvested AMASS)
+  const ncts = [...new Set(withTrials.flatMap((p) => (p.trials ?? []).map((t) => t.nctId).filter((x): x is string => !!x)))];
+  if (ncts.length) {
+    try {
+      const rows = await restQuery<{ nct_id: string; completion_date: string | null }>(
+        `pg_trials?nct_id=in.(${ncts.join(",")})&select=nct_id,completion_date`
+      );
+      const dateBy = new Map(rows.map((r) => [r.nct_id, r.completion_date]));
+      for (const p of withTrials) {
+        for (const t of p.trials ?? []) {
+          if (t.nctId && dateBy.has(t.nctId)) t.completionDate = dateBy.get(t.nctId) ?? null;
+        }
+      }
+    } catch {
+      /* enrichment is best-effort; OT already gives start date + status + why-stopped */
+    }
+  }
+  return withTrials;
 }
 
 async function curateCohort(
@@ -147,6 +242,22 @@ async function curateCohort(
   return { cohort, cohortSummary: data.cohortSummary ?? "" };
 }
 
+// Merge AMASS trials fetched for the drug(s) the user typed into the matching
+// cohort program (by drug name), deduped by NCT id. If the typed drug is not in
+// the OT cohort, the trials are still available for the model via provenance but
+// are not force-injected as a new program (the cohort stays OT-curated).
+function mergeSubjectTrials(cohort: CohortProgram[], drugs: Drug[], subjectTrials: TrialDetail[]): CohortProgram[] {
+  if (!subjectTrials.length) return cohort;
+  const typed = new Set(drugs.map((d) => d.name.toLowerCase()));
+  return cohort.map((p) => {
+    if (!typed.has(p.drug.toLowerCase())) return p;
+    const seen = new Set((p.trials ?? []).map((t) => t.nctId ?? t.title ?? ""));
+    const extra = subjectTrials.filter((t) => !seen.has(t.nctId ?? t.title ?? ""));
+    if (!extra.length) return p;
+    return { ...p, trials: [...(p.trials ?? []), ...extra].slice(0, MAX_TRIALS_PER_PROGRAM) };
+  });
+}
+
 // ---------------------------------------------------------------- Stage 2 ----
 interface ModalityAndRisks {
   modality: ModalityFeasibility;
@@ -158,6 +269,7 @@ async function modalityAndRisks(
   input: ForecastInput,
   cohort: CohortProgram[],
   papers: ElicitPaper[],
+  patents: Patent[],
   subjectModality: string
 ): Promise<ModalityAndRisks> {
   const schema = {
@@ -225,8 +337,8 @@ async function modalityAndRisks(
     : "(no clinical reference class for this target)";
 
   const system =
-    "You are a translational-medicine risk analyst. Given a subject program (disease + target + modality), its real reference-class cohort with each program's failure reason, and the literature, produce three things: (1) modality feasibility: an overall 0-1 score plus named axes (e.g. stability, permeability, bioavailability, target-tissue access, CMC) each with a 0-1 score and a one-line note; (2) failure modes: the recurring ways THIS program can die, each with a share of total attrition risk (shares ~sum to 1), the mechanism, evidence (cite the cohort's actual failures or the literature), a cheap kill experiment, its cost and timeline, and a signal (green=low/monitored, amber=live, red=likely); (3) a derisking plan: the kill experiments ordered by value of information. Ground failure modes in how analogous programs actually failed. Do not output any probability of overall success; that is computed separately." + STYLE;
-  const user = `Subject: ${input.targetSymbol} in ${input.diseaseName}, modality ${subjectModality}.\n\nReference-class cohort and how each ended:\n${cohortSummary}\n\nLiterature:\n${paperLines(papers)}\n\nProduce modality feasibility, failure modes, and the derisking plan.`;
+    "You are a translational-medicine risk analyst. Given a subject program (disease + target + modality), its real reference-class cohort with each program's failure reason, the literature, and the patent landscape, produce three things: (1) modality feasibility: an overall 0-1 score plus named axes (e.g. stability, permeability, bioavailability, target-tissue access, CMC) each with a 0-1 score and a one-line note; (2) failure modes: the recurring ways THIS program can die, each with a share of total attrition risk (shares ~sum to 1), the mechanism, evidence (cite the cohort's actual failures, the literature, or the patents), a cheap kill experiment, its cost and timeline, and a signal (green=low/monitored, amber=live, red=likely); (3) a derisking plan: the kill experiments ordered by value of information. Ground failure modes in how analogous programs actually failed. The patent landscape informs competitive/freedom-to-operate and differentiation risk. Do not output any probability of overall success; that is computed separately." + STYLE;
+  const user = `Subject: ${input.targetSymbol} in ${input.diseaseName}, modality ${subjectModality}.\n\nReference-class cohort and how each ended:\n${cohortSummary}\n\nLiterature:\n${paperLines(papers)}\n\nPatent landscape (AMASS patentcore):\n${patentLines(patents)}\n\nProduce modality feasibility, failure modes, and the derisking plan.`;
 
   const data = await extract<ModalityAndRisks>(system, user, schema, { effort: "medium", maxTokens: 4000 });
   return {
@@ -252,7 +364,8 @@ async function judge(
   cohort: CohortProgram[],
   associationFound: boolean,
   association: number,
-  papersCount: number
+  papersCount: number,
+  patentsCount: number
 ): Promise<Judgement> {
   const schema = {
     type: "object",
@@ -276,6 +389,7 @@ async function judge(
     `Reference cohort: ${cohort.length} programs (${decided} decided, ${failed} failed/discontinued).`,
     `Open Targets association: ${associationFound ? association.toFixed(2) : "no association row (neutral prior used)"}.`,
     `Literature retrieved: ${papersCount} papers.`,
+    `Patents retrieved: ${patentsCount} (AMASS patentcore).`,
   ].join("\n");
 
   const rubric =
@@ -326,10 +440,18 @@ export async function generateForecast(input: ForecastInput): Promise<ForecastRe
   const efoId = disease?.id ?? null;
   const ensemblId = target.id;
 
-  const [assoc, cands, elicitPapers] = await Promise.all([
+  const [assoc, cands, elicitPapers, patents, subjectDrugTrials] = await Promise.all([
     efoId ? associationFor(ensemblId, efoId) : Promise.resolve({ association: 0, evidence: [], datatypeScores: {}, found: false }),
     cohortCandidates(ensemblId),
     searchPapers(`${input.targetSymbol} as a therapeutic target for ${input.diseaseName}: clinical trial outcomes, efficacy and safety, mechanism`, 8).catch(() => [] as ElicitPaper[]),
+    // AMASS patents (cached: one credit at most per disease+target). Empty when
+    // AMASS is out of credits, so the forecast degrades gracefully.
+    getPatents(input.diseaseName, input.targetSymbol).catch(() => [] as Patent[]),
+    // AMASS trials for the drug(s) the user typed (cached per drug). Enriches the
+    // subject drug's real clinical history.
+    Promise.all(input.drugs.map((d) => getDrugTrials(d.name).catch(() => [] as TrialDetail[])))
+      .then((lists) => lists.flat())
+      .catch(() => [] as TrialDetail[]),
   ]);
 
   const associationValue = assoc.found ? assoc.association : NEUTRAL_ASSOC;
@@ -341,11 +463,14 @@ export async function generateForecast(input: ForecastInput): Promise<ForecastRe
   };
   const subjectModality = subjectModalityOf(input.drugs);
 
-  // Stage 1 — curate the real cohort (LLM, grounded).
-  const { cohort, cohortSummary } = await curateCohort(input, cands, subjectModality);
+  // Stage 1 — curate the real cohort (LLM, grounded), then attach ground-truth
+  // trials from the raw Open Targets candidates (+ pg_trials completion dates),
+  // then merge in any AMASS trials fetched for the drug(s) the user typed.
+  const { cohort: curatedCohort, cohortSummary } = await curateCohort(input, cands, subjectModality);
+  const cohort = mergeSubjectTrials(await attachTrials(curatedCohort, cands), input.drugs, subjectDrugTrials);
 
   // Stage 2 — modality feasibility + failure modes + derisking (LLM, grounded).
-  const mr = await modalityAndRisks(input, cohort, elicitPapers, subjectModality);
+  const mr = await modalityAndRisks(input, cohort, elicitPapers, patents, subjectModality);
 
   // Stage 3 — compute the number (deterministic, the ONLY place it is produced).
   const partialReport = { modality: mr.modality, cohort } as unknown as Report;
@@ -357,7 +482,7 @@ export async function generateForecast(input: ForecastInput): Promise<ForecastRe
   });
 
   // Stage 4 — verdict, confidence, adversarial (LLM, high effort).
-  const j = await judge(input, score, cohort, assoc.found, associationValue, elicitPapers.length);
+  const j = await judge(input, score, cohort, assoc.found, associationValue, elicitPapers.length, patents.length);
 
   const report: Report = {
     attrition: score.attrition,
@@ -389,12 +514,16 @@ export async function generateForecast(input: ForecastInput): Promise<ForecastRe
     report,
     score,
     papers: elicitPapers.map(toPaper),
+    patents,
     provenance: {
       efoId,
       ensemblId,
       associationFound: assoc.found,
       cohortSize: cohort.length,
       cohortSource: "open_targets",
+      trialsAttached: cohort.reduce((n, p) => n + (p.trials?.length ?? 0), 0),
+      patentCount: patents.length,
+      subjectDrugTrials: subjectDrugTrials.length,
       generatedAt: now,
     },
   };

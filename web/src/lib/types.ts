@@ -50,6 +50,21 @@ export interface Disease {
   targets: TargetAssoc[];
 }
 
+// One clinical trial of a cohort program. Ground-truth structured detail from
+// Open Targets (start date, status, why-stopped, link), optionally enriched with
+// a completion date from pg_trials via the NCT id. NOT LLM-generated.
+export interface TrialDetail {
+  phase: string; // OT phase string e.g. "PHASE_2" (not the Phase union)
+  status: string | null; // TERMINATED / COMPLETED / RECRUITING ...
+  startDate: string | null;
+  completionDate: string | null; // best-effort from pg_trials via NCT id
+  whyStopped: string | null;
+  stopReasonCategories: string[];
+  title: string | null;
+  url: string | null; // ClinicalTrials.gov link (carries the NCT id)
+  nctId: string | null;
+}
+
 export interface CohortProgram {
   drug: string;
   sponsor: string;
@@ -62,6 +77,8 @@ export interface CohortProgram {
   reason: string; // why it stopped / current status
   similarity: number; // 0-1 mechanistic analogy to the subject program
   year: number; // year of the defining readout
+  // Real trials for this program (live forecasts only; undefined for authored pairs).
+  trials?: TrialDetail[];
 }
 
 export interface FailureMode {
@@ -130,6 +147,15 @@ export interface Paper {
   venue: string | null;
   citedByCount: number | null;
   urls: string[];
+}
+
+export interface Patent {
+  title: string;
+  abstract: string | null;
+  assignee: string | null;
+  number: string | null; // publication / patent number
+  date: string | null; // filing or publication date
+  url: string | null;
 }
 
 export interface Report {

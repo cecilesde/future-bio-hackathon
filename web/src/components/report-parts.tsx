@@ -6,6 +6,7 @@ import type {
   Calibration,
   Signal,
   Paper,
+  Patent,
 } from "@/lib/types";
 import type { AttritionScore, Component } from "@/lib/attrition";
 
@@ -468,6 +469,47 @@ export function LiteraturePanel({ papers }: { papers: Paper[] }) {
             </div>
           );
         })}
+      </div>
+    </section>
+  );
+}
+
+/* ---------------------------------------------------------------- patents */
+export function PatentsPanel({ patents }: { patents: Patent[] }) {
+  if (!patents?.length) return null;
+  return (
+    <section>
+      <SectionHead
+        n="07"
+        title="Patent landscape"
+        sub="Freedom-to-operate and competitive signal for this target-disease pair, retrieved live from AMASS patentcore. Who is filing, and around what."
+      />
+      <div className="panel divide-y" style={{ borderColor: "var(--line-2)" }}>
+        {patents.map((p, i) => (
+          <div key={i} className="p-4 grid gap-x-4 gap-y-1 md:grid-cols-[1fr_auto] items-start">
+            <div className="min-w-0">
+              {p.url ? (
+                <a
+                  href={p.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[14.5px] t-dim leading-snug hover:underline"
+                  style={{ textDecorationColor: "var(--accent)" }}
+                >
+                  {p.title}
+                </a>
+              ) : (
+                <span className="text-[14.5px] t-dim leading-snug">{p.title}</span>
+              )}
+              {p.abstract && (
+                <p className="text-[12px] t-muted mt-1 leading-snug line-clamp-2">{p.abstract}</p>
+              )}
+              <p className="mono text-[10.5px] t-muted mt-1">
+                {[p.assignee, p.number, p.date ? p.date.slice(0, 4) : null].filter(Boolean).join(" · ")}
+              </p>
+            </div>
+          </div>
+        ))}
       </div>
     </section>
   );
