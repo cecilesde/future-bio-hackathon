@@ -1,0 +1,4339 @@
+{
+ "meta": {
+  "source": "AMASS trialcore (api.amass.tech) harvested cache",
+  "totalUniqueTrials": 43285,
+  "mappedTrials": 34015,
+  "excludedNonDisease": 2617,
+  "unmappedConditionMentions": 16611,
+  "areas": 17,
+  "note": "Counts are over the project's harvested AMASS trialcore set (trials matching the drug-repurposing vocabulary), deduplicated by NCT ID. This is a representative sample, not the full 1.2M-trial AMASS index. A trial with multiple conditions contributes to each disease it matches, so disease counts sum to more than the unique-trial total. Stratification uses MeSH condition terms where present (83% of trials), else free-text conditions."
+ },
+ "areas": [
+  {
+   "area": "Oncology",
+   "trials": 7763,
+   "diseases": [
+    {
+     "disease": "Other solid & blood cancers",
+     "trials": 2113,
+     "phases": {
+      "P1": 644,
+      "P2": 802,
+      "P3": 274,
+      "P4": 82,
+      "NA": 311
+     },
+     "status": {
+      "completed": 1099,
+      "ongoing": 443,
+      "stopped": 371,
+      "other": 200
+     },
+     "enrollment": 4186523,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 106
+      },
+      {
+       "name": "laboratory biomarker analysis",
+       "n": 58
+      },
+      {
+       "name": "Paclitaxel",
+       "n": 47
+      },
+      {
+       "name": "Carboplatin",
+       "n": 46
+      },
+      {
+       "name": "Laboratory Biomarker Analysis",
+       "n": 41
+      },
+      {
+       "name": "Dexamethasone",
+       "n": 36
+      }
+     ]
+    },
+    {
+     "disease": "Breast cancer",
+     "trials": 681,
+     "phases": {
+      "P1": 148,
+      "P2": 262,
+      "P3": 101,
+      "P4": 28,
+      "NA": 142
+     },
+     "status": {
+      "completed": 323,
+      "ongoing": 156,
+      "stopped": 135,
+      "other": 67
+     },
+     "enrollment": 3315565,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 52
+      },
+      {
+       "name": "Everolimus",
+       "n": 19
+      },
+      {
+       "name": "Paclitaxel",
+       "n": 17
+      },
+      {
+       "name": "Letrozole",
+       "n": 16
+      },
+      {
+       "name": "placebo",
+       "n": 16
+      },
+      {
+       "name": "Exemestane",
+       "n": 14
+      }
+     ]
+    },
+    {
+     "disease": "Lung cancer",
+     "trials": 613,
+     "phases": {
+      "P1": 179,
+      "P2": 265,
+      "P3": 68,
+      "P4": 7,
+      "NA": 94
+     },
+     "status": {
+      "completed": 278,
+      "ongoing": 143,
+      "stopped": 134,
+      "other": 58
+     },
+     "enrollment": 2410830,
+     "topInterventions": [
+      {
+       "name": "Carboplatin",
+       "n": 35
+      },
+      {
+       "name": "Placebo",
+       "n": 28
+      },
+      {
+       "name": "Pemetrexed",
+       "n": 27
+      },
+      {
+       "name": "Cisplatin",
+       "n": 26
+      },
+      {
+       "name": "Nivolumab",
+       "n": 19
+      },
+      {
+       "name": "Paclitaxel",
+       "n": 17
+      }
+     ]
+    },
+    {
+     "disease": "Leukemia",
+     "trials": 601,
+     "phases": {
+      "P1": 192,
+      "P2": 273,
+      "P3": 71,
+      "P4": 16,
+      "NA": 49
+     },
+     "status": {
+      "completed": 329,
+      "ongoing": 83,
+      "stopped": 132,
+      "other": 57
+     },
+     "enrollment": 1110578,
+     "topInterventions": [
+      {
+       "name": "Cyclophosphamide",
+       "n": 39
+      },
+      {
+       "name": "Rituximab",
+       "n": 34
+      },
+      {
+       "name": "Cytarabine",
+       "n": 32
+      },
+      {
+       "name": "Fludarabine",
+       "n": 24
+      },
+      {
+       "name": "laboratory biomarker analysis",
+       "n": 21
+      },
+      {
+       "name": "Azacitidine",
+       "n": 19
+      }
+     ]
+    },
+    {
+     "disease": "Lymphoma",
+     "trials": 590,
+     "phases": {
+      "P1": 174,
+      "P2": 257,
+      "P3": 96,
+      "P4": 14,
+      "NA": 49
+     },
+     "status": {
+      "completed": 302,
+      "ongoing": 117,
+      "stopped": 121,
+      "other": 50
+     },
+     "enrollment": 1084932,
+     "topInterventions": [
+      {
+       "name": "Rituximab",
+       "n": 102
+      },
+      {
+       "name": "Cyclophosphamide",
+       "n": 45
+      },
+      {
+       "name": "rituximab",
+       "n": 34
+      },
+      {
+       "name": "Placebo",
+       "n": 21
+      },
+      {
+       "name": "Dexamethasone",
+       "n": 20
+      },
+      {
+       "name": "Vincristine",
+       "n": 18
+      }
+     ]
+    },
+    {
+     "disease": "Prostate cancer",
+     "trials": 464,
+     "phases": {
+      "P1": 91,
+      "P2": 176,
+      "P3": 73,
+      "P4": 16,
+      "NA": 108
+     },
+     "status": {
+      "completed": 255,
+      "ongoing": 98,
+      "stopped": 69,
+      "other": 42
+     },
+     "enrollment": 367155,
+     "topInterventions": [
+      {
+       "name": "Prednisone",
+       "n": 47
+      },
+      {
+       "name": "Placebo",
+       "n": 28
+      },
+      {
+       "name": "prednisone",
+       "n": 15
+      },
+      {
+       "name": "Docetaxel",
+       "n": 13
+      },
+      {
+       "name": "Abiraterone",
+       "n": 12
+      },
+      {
+       "name": "docetaxel",
+       "n": 12
+      }
+     ]
+    },
+    {
+     "disease": "Colorectal cancer",
+     "trials": 412,
+     "phases": {
+      "P1": 97,
+      "P2": 159,
+      "P3": 56,
+      "P4": 10,
+      "NA": 90
+     },
+     "status": {
+      "completed": 191,
+      "ongoing": 110,
+      "stopped": 68,
+      "other": 43
+     },
+     "enrollment": 6966744,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 27
+      },
+      {
+       "name": "fluorouracil",
+       "n": 13
+      },
+      {
+       "name": "Oxaliplatin",
+       "n": 12
+      },
+      {
+       "name": "Celecoxib",
+       "n": 12
+      },
+      {
+       "name": "Cetuximab",
+       "n": 11
+      },
+      {
+       "name": "Bevacizumab",
+       "n": 11
+      }
+     ]
+    },
+    {
+     "disease": "Brain cancer / glioma",
+     "trials": 298,
+     "phases": {
+      "P1": 99,
+      "P2": 124,
+      "P3": 21,
+      "P4": 6,
+      "NA": 48
+     },
+     "status": {
+      "completed": 139,
+      "ongoing": 80,
+      "stopped": 62,
+      "other": 17
+     },
+     "enrollment": 25465,
+     "topInterventions": [
+      {
+       "name": "Temozolomide",
+       "n": 20
+      },
+      {
+       "name": "Placebo",
+       "n": 12
+      },
+      {
+       "name": "laboratory biomarker analysis",
+       "n": 9
+      },
+      {
+       "name": "Dexamethasone",
+       "n": 7
+      },
+      {
+       "name": "pharmacological study",
+       "n": 7
+      },
+      {
+       "name": "Disulfiram",
+       "n": 7
+      }
+     ]
+    },
+    {
+     "disease": "Multiple myeloma",
+     "trials": 263,
+     "phases": {
+      "P1": 78,
+      "P2": 114,
+      "P3": 44,
+      "P4": 10,
+      "NA": 17
+     },
+     "status": {
+      "completed": 151,
+      "ongoing": 41,
+      "stopped": 58,
+      "other": 13
+     },
+     "enrollment": 33318,
+     "topInterventions": [
+      {
+       "name": "Dexamethasone",
+       "n": 64
+      },
+      {
+       "name": "Bortezomib",
+       "n": 20
+      },
+      {
+       "name": "Lenalidomide",
+       "n": 18
+      },
+      {
+       "name": "Pomalidomide",
+       "n": 16
+      },
+      {
+       "name": "dexamethasone",
+       "n": 12
+      },
+      {
+       "name": "Cyclophosphamide",
+       "n": 11
+      }
+     ]
+    },
+    {
+     "disease": "Melanoma",
+     "trials": 226,
+     "phases": {
+      "P1": 79,
+      "P2": 107,
+      "P3": 13,
+      "P4": 1,
+      "NA": 26
+     },
+     "status": {
+      "completed": 111,
+      "ongoing": 57,
+      "stopped": 40,
+      "other": 18
+     },
+     "enrollment": 2979310,
+     "topInterventions": [
+      {
+       "name": "Ipilimumab",
+       "n": 16
+      },
+      {
+       "name": "Pembrolizumab",
+       "n": 13
+      },
+      {
+       "name": "Nivolumab",
+       "n": 11
+      },
+      {
+       "name": "laboratory biomarker analysis",
+       "n": 9
+      },
+      {
+       "name": "Placebo",
+       "n": 7
+      },
+      {
+       "name": "CP-675,206",
+       "n": 7
+      }
+     ]
+    },
+    {
+     "disease": "Sarcoma",
+     "trials": 213,
+     "phases": {
+      "P1": 63,
+      "P2": 115,
+      "P3": 15,
+      "P4": 0,
+      "NA": 20
+     },
+     "status": {
+      "completed": 120,
+      "ongoing": 49,
+      "stopped": 37,
+      "other": 7
+     },
+     "enrollment": 21980,
+     "topInterventions": [
+      {
+       "name": "laboratory biomarker analysis",
+       "n": 15
+      },
+      {
+       "name": "Laboratory Biomarker Analysis",
+       "n": 8
+      },
+      {
+       "name": "pharmacological study",
+       "n": 8
+      },
+      {
+       "name": "Doxorubicin",
+       "n": 7
+      },
+      {
+       "name": "temozolomide",
+       "n": 6
+      },
+      {
+       "name": "Placebo",
+       "n": 6
+      }
+     ]
+    },
+    {
+     "disease": "Head & neck cancer",
+     "trials": 198,
+     "phases": {
+      "P1": 64,
+      "P2": 83,
+      "P3": 17,
+      "P4": 9,
+      "NA": 25
+     },
+     "status": {
+      "completed": 94,
+      "ongoing": 48,
+      "stopped": 42,
+      "other": 14
+     },
+     "enrollment": 20230,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 21
+      },
+      {
+       "name": "Pembrolizumab",
+       "n": 12
+      },
+      {
+       "name": "laboratory biomarker analysis",
+       "n": 10
+      },
+      {
+       "name": "Gabapentin",
+       "n": 7
+      },
+      {
+       "name": "Nivolumab",
+       "n": 6
+      },
+      {
+       "name": "Cisplatin",
+       "n": 6
+      }
+     ]
+    },
+    {
+     "disease": "Ovarian cancer",
+     "trials": 188,
+     "phases": {
+      "P1": 64,
+      "P2": 85,
+      "P3": 16,
+      "P4": 1,
+      "NA": 22
+     },
+     "status": {
+      "completed": 102,
+      "ongoing": 39,
+      "stopped": 40,
+      "other": 7
+     },
+     "enrollment": 40520,
+     "topInterventions": [
+      {
+       "name": "Laboratory Biomarker Analysis",
+       "n": 18
+      },
+      {
+       "name": "Carboplatin",
+       "n": 18
+      },
+      {
+       "name": "Paclitaxel",
+       "n": 17
+      },
+      {
+       "name": "Placebo",
+       "n": 10
+      },
+      {
+       "name": "Bevacizumab",
+       "n": 7
+      },
+      {
+       "name": "carboplatin",
+       "n": 6
+      }
+     ]
+    },
+    {
+     "disease": "Pancreatic cancer",
+     "trials": 170,
+     "phases": {
+      "P1": 57,
+      "P2": 70,
+      "P3": 19,
+      "P4": 5,
+      "NA": 19
+     },
+     "status": {
+      "completed": 74,
+      "ongoing": 41,
+      "stopped": 34,
+      "other": 21
+     },
+     "enrollment": 2395156,
+     "topInterventions": [
+      {
+       "name": "Gemcitabine",
+       "n": 19
+      },
+      {
+       "name": "Placebo",
+       "n": 14
+      },
+      {
+       "name": "gemcitabine hydrochloride",
+       "n": 11
+      },
+      {
+       "name": "Nab-paclitaxel",
+       "n": 7
+      },
+      {
+       "name": "laboratory biomarker analysis",
+       "n": 5
+      },
+      {
+       "name": "Rexin-G",
+       "n": 5
+      }
+     ]
+    },
+    {
+     "disease": "Liver cancer",
+     "trials": 169,
+     "phases": {
+      "P1": 37,
+      "P2": 65,
+      "P3": 20,
+      "P4": 7,
+      "NA": 40
+     },
+     "status": {
+      "completed": 68,
+      "ongoing": 55,
+      "stopped": 20,
+      "other": 26
+     },
+     "enrollment": 27992,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 8
+      },
+      {
+       "name": "Nivolumab",
+       "n": 6
+      },
+      {
+       "name": "Sorafenib",
+       "n": 6
+      },
+      {
+       "name": "CC-122",
+       "n": 6
+      },
+      {
+       "name": "Biospecimen Collection",
+       "n": 5
+      },
+      {
+       "name": "Sirolimus",
+       "n": 4
+      }
+     ]
+    },
+    {
+     "disease": "Kidney cancer",
+     "trials": 163,
+     "phases": {
+      "P1": 47,
+      "P2": 87,
+      "P3": 7,
+      "P4": 4,
+      "NA": 18
+     },
+     "status": {
+      "completed": 100,
+      "ongoing": 28,
+      "stopped": 33,
+      "other": 2
+     },
+     "enrollment": 2396160,
+     "topInterventions": [
+      {
+       "name": "Everolimus",
+       "n": 13
+      },
+      {
+       "name": "Nivolumab",
+       "n": 7
+      },
+      {
+       "name": "placebo",
+       "n": 5
+      },
+      {
+       "name": "Laboratory Biomarker Analysis",
+       "n": 4
+      },
+      {
+       "name": "Pembrolizumab",
+       "n": 4
+      },
+      {
+       "name": "laboratory biomarker analysis",
+       "n": 4
+      }
+     ]
+    },
+    {
+     "disease": "Bladder cancer",
+     "trials": 159,
+     "phases": {
+      "P1": 35,
+      "P2": 52,
+      "P3": 26,
+      "P4": 11,
+      "NA": 35
+     },
+     "status": {
+      "completed": 97,
+      "ongoing": 33,
+      "stopped": 20,
+      "other": 9
+     },
+     "enrollment": 2546194,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 10
+      },
+      {
+       "name": "placebo",
+       "n": 6
+      },
+      {
+       "name": "laboratory biomarker analysis",
+       "n": 6
+      },
+      {
+       "name": "Laboratory Biomarker Analysis",
+       "n": 5
+      },
+      {
+       "name": "tolterodine tartrate",
+       "n": 5
+      },
+      {
+       "name": "Pembrolizumab",
+       "n": 4
+      }
+     ]
+    },
+    {
+     "disease": "Gastric cancer",
+     "trials": 136,
+     "phases": {
+      "P1": 28,
+      "P2": 60,
+      "P3": 11,
+      "P4": 3,
+      "NA": 34
+     },
+     "status": {
+      "completed": 59,
+      "ongoing": 32,
+      "stopped": 16,
+      "other": 29
+     },
+     "enrollment": 2504768,
+     "topInterventions": [
+      {
+       "name": "Cisplatin",
+       "n": 8
+      },
+      {
+       "name": "Oxaliplatin",
+       "n": 6
+      },
+      {
+       "name": "Capecitabine",
+       "n": 6
+      },
+      {
+       "name": "Pembrolizumab",
+       "n": 5
+      },
+      {
+       "name": "Placebo",
+       "n": 5
+      },
+      {
+       "name": "Dexamethasone",
+       "n": 4
+      }
+     ]
+    },
+    {
+     "disease": "Cervical cancer",
+     "trials": 106,
+     "phases": {
+      "P1": 20,
+      "P2": 31,
+      "P3": 12,
+      "P4": 1,
+      "NA": 42
+     },
+     "status": {
+      "completed": 62,
+      "ongoing": 23,
+      "stopped": 10,
+      "other": 11
+     },
+     "enrollment": 206509,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 7
+      },
+      {
+       "name": "cisplatin",
+       "n": 5
+      },
+      {
+       "name": "Laboratory Biomarker Analysis",
+       "n": 4
+      },
+      {
+       "name": "Cisplatin",
+       "n": 3
+      },
+      {
+       "name": "Paclitaxel",
+       "n": 3
+      },
+      {
+       "name": "Cyclophosphamide",
+       "n": 3
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "area": "Psychiatry & Mental Health",
+   "trials": 6171,
+   "diseases": [
+    {
+     "disease": "Depression",
+     "trials": 1477,
+     "phases": {
+      "P1": 148,
+      "P2": 243,
+      "P3": 368,
+      "P4": 382,
+      "NA": 336
+     },
+     "status": {
+      "completed": 998,
+      "ongoing": 170,
+      "stopped": 162,
+      "other": 147
+     },
+     "enrollment": 4507718,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 354
+      },
+      {
+       "name": "Ketamine",
+       "n": 99
+      },
+      {
+       "name": "Escitalopram",
+       "n": 88
+      },
+      {
+       "name": "Sertraline",
+       "n": 58
+      },
+      {
+       "name": "placebo",
+       "n": 54
+      },
+      {
+       "name": "Fluoxetine",
+       "n": 49
+      }
+     ]
+    },
+    {
+     "disease": "Substance use disorders",
+     "trials": 1286,
+     "phases": {
+      "P1": 211,
+      "P2": 422,
+      "P3": 179,
+      "P4": 228,
+      "NA": 246
+     },
+     "status": {
+      "completed": 927,
+      "ongoing": 154,
+      "stopped": 133,
+      "other": 72
+     },
+     "enrollment": 2274581,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 327
+      },
+      {
+       "name": "Varenicline",
+       "n": 87
+      },
+      {
+       "name": "Buprenorphine",
+       "n": 62
+      },
+      {
+       "name": "placebo",
+       "n": 53
+      },
+      {
+       "name": "Naltrexone",
+       "n": 50
+      },
+      {
+       "name": "Bupropion",
+       "n": 34
+      }
+     ]
+    },
+    {
+     "disease": "Schizophrenia & psychosis",
+     "trials": 1019,
+     "phases": {
+      "P1": 127,
+      "P2": 117,
+      "P3": 260,
+      "P4": 315,
+      "NA": 200
+     },
+     "status": {
+      "completed": 772,
+      "ongoing": 62,
+      "stopped": 114,
+      "other": 71
+     },
+     "enrollment": 316363,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 170
+      },
+      {
+       "name": "Aripiprazole",
+       "n": 74
+      },
+      {
+       "name": "Risperidone",
+       "n": 62
+      },
+      {
+       "name": "Olanzapine",
+       "n": 59
+      },
+      {
+       "name": "risperidone",
+       "n": 48
+      },
+      {
+       "name": "Ziprasidone",
+       "n": 41
+      }
+     ]
+    },
+    {
+     "disease": "Anxiety & PTSD",
+     "trials": 585,
+     "phases": {
+      "P1": 38,
+      "P2": 127,
+      "P3": 102,
+      "P4": 150,
+      "NA": 168
+     },
+     "status": {
+      "completed": 364,
+      "ongoing": 86,
+      "stopped": 90,
+      "other": 45
+     },
+     "enrollment": 405460,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 149
+      },
+      {
+       "name": "placebo",
+       "n": 33
+      },
+      {
+       "name": "Paroxetine",
+       "n": 27
+      },
+      {
+       "name": "Ketamine",
+       "n": 25
+      },
+      {
+       "name": "Escitalopram",
+       "n": 20
+      },
+      {
+       "name": "Sertraline",
+       "n": 19
+      }
+     ]
+    },
+    {
+     "disease": "Bipolar disorder",
+     "trials": 563,
+     "phases": {
+      "P1": 25,
+      "P2": 66,
+      "P3": 182,
+      "P4": 171,
+      "NA": 119
+     },
+     "status": {
+      "completed": 402,
+      "ongoing": 45,
+      "stopped": 82,
+      "other": 34
+     },
+     "enrollment": 1391497,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 130
+      },
+      {
+       "name": "Lithium",
+       "n": 45
+      },
+      {
+       "name": "Lamotrigine",
+       "n": 29
+      },
+      {
+       "name": "Olanzapine",
+       "n": 26
+      },
+      {
+       "name": "Aripiprazole",
+       "n": 26
+      },
+      {
+       "name": "Quetiapine",
+       "n": 22
+      }
+     ]
+    },
+    {
+     "disease": "ADHD",
+     "trials": 434,
+     "phases": {
+      "P1": 24,
+      "P2": 52,
+      "P3": 113,
+      "P4": 163,
+      "NA": 82
+     },
+     "status": {
+      "completed": 345,
+      "ongoing": 26,
+      "stopped": 32,
+      "other": 31
+     },
+     "enrollment": 1590229,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 132
+      },
+      {
+       "name": "Atomoxetine",
+       "n": 52
+      },
+      {
+       "name": "Methylphenidate",
+       "n": 35
+      },
+      {
+       "name": "placebo",
+       "n": 21
+      },
+      {
+       "name": "Atomoxetine Hydrochloride",
+       "n": 19
+      },
+      {
+       "name": "atomoxetine",
+       "n": 13
+      }
+     ]
+    },
+    {
+     "disease": "Sleep disorders",
+     "trials": 395,
+     "phases": {
+      "P1": 40,
+      "P2": 50,
+      "P3": 96,
+      "P4": 117,
+      "NA": 92
+     },
+     "status": {
+      "completed": 273,
+      "ongoing": 53,
+      "stopped": 40,
+      "other": 29
+     },
+     "enrollment": 122900,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 145
+      },
+      {
+       "name": "Ramelteon",
+       "n": 42
+      },
+      {
+       "name": "Zolpidem",
+       "n": 32
+      },
+      {
+       "name": "Eszopiclone",
+       "n": 29
+      },
+      {
+       "name": "placebo",
+       "n": 26
+      },
+      {
+       "name": "Suvorexant",
+       "n": 21
+      }
+     ]
+    },
+    {
+     "disease": "Other mental health",
+     "trials": 157,
+     "phases": {
+      "P1": 16,
+      "P2": 21,
+      "P3": 42,
+      "P4": 22,
+      "NA": 56
+     },
+     "status": {
+      "completed": 112,
+      "ongoing": 19,
+      "stopped": 16,
+      "other": 10
+     },
+     "enrollment": 2192582,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 32
+      },
+      {
+       "name": "Brexpiprazole",
+       "n": 7
+      },
+      {
+       "name": "Placebo + ADT",
+       "n": 5
+      },
+      {
+       "name": "Sertraline",
+       "n": 5
+      },
+      {
+       "name": "placebo",
+       "n": 4
+      },
+      {
+       "name": "Paroxetine",
+       "n": 4
+      }
+     ]
+    },
+    {
+     "disease": "Autism spectrum",
+     "trials": 143,
+     "phases": {
+      "P1": 15,
+      "P2": 48,
+      "P3": 34,
+      "P4": 15,
+      "NA": 31
+     },
+     "status": {
+      "completed": 95,
+      "ongoing": 26,
+      "stopped": 14,
+      "other": 8
+     },
+     "enrollment": 1012323,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 55
+      },
+      {
+       "name": "Aripiprazole",
+       "n": 8
+      },
+      {
+       "name": "Risperidone",
+       "n": 7
+      },
+      {
+       "name": "placebo",
+       "n": 5
+      },
+      {
+       "name": "Propranolol",
+       "n": 5
+      },
+      {
+       "name": "Memantine",
+       "n": 4
+      }
+     ]
+    },
+    {
+     "disease": "Delirium",
+     "trials": 112,
+     "phases": {
+      "P1": 3,
+      "P2": 13,
+      "P3": 28,
+      "P4": 39,
+      "NA": 29
+     },
+     "status": {
+      "completed": 52,
+      "ongoing": 25,
+      "stopped": 22,
+      "other": 13
+     },
+     "enrollment": 52133,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 36
+      },
+      {
+       "name": "Melatonin",
+       "n": 10
+      },
+      {
+       "name": "Dexmedetomidine",
+       "n": 7
+      },
+      {
+       "name": "Esketamine",
+       "n": 5
+      },
+      {
+       "name": "Haloperidol",
+       "n": 5
+      },
+      {
+       "name": "Ramelteon",
+       "n": 5
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "area": "Cardiovascular",
+   "trials": 5976,
+   "diseases": [
+    {
+     "disease": "Hypertension",
+     "trials": 1269,
+     "phases": {
+      "P1": 98,
+      "P2": 150,
+      "P3": 380,
+      "P4": 404,
+      "NA": 237
+     },
+     "status": {
+      "completed": 885,
+      "ongoing": 93,
+      "stopped": 146,
+      "other": 145
+     },
+     "enrollment": 8578333,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 140
+      },
+      {
+       "name": "Amlodipine",
+       "n": 65
+      },
+      {
+       "name": "Hydrochlorothiazide",
+       "n": 48
+      },
+      {
+       "name": "Nebivolol",
+       "n": 45
+      },
+      {
+       "name": "Valsartan",
+       "n": 38
+      },
+      {
+       "name": "Telmisartan",
+       "n": 35
+      }
+     ]
+    },
+    {
+     "disease": "Coronary artery disease / ACS",
+     "trials": 1182,
+     "phases": {
+      "P1": 39,
+      "P2": 101,
+      "P3": 228,
+      "P4": 475,
+      "NA": 339
+     },
+     "status": {
+      "completed": 711,
+      "ongoing": 154,
+      "stopped": 108,
+      "other": 209
+     },
+     "enrollment": 3604842,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 144
+      },
+      {
+       "name": "Clopidogrel",
+       "n": 117
+      },
+      {
+       "name": "Ticagrelor",
+       "n": 80
+      },
+      {
+       "name": "Prasugrel",
+       "n": 58
+      },
+      {
+       "name": "Ranolazine",
+       "n": 34
+      },
+      {
+       "name": "Aspirin",
+       "n": 33
+      }
+     ]
+    },
+    {
+     "disease": "Cardiovascular (other)",
+     "trials": 831,
+     "phases": {
+      "P1": 44,
+      "P2": 117,
+      "P3": 213,
+      "P4": 181,
+      "NA": 276
+     },
+     "status": {
+      "completed": 478,
+      "ongoing": 143,
+      "stopped": 100,
+      "other": 110
+     },
+     "enrollment": 11045001,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 121
+      },
+      {
+       "name": "Aspirin",
+       "n": 25
+      },
+      {
+       "name": "Warfarin",
+       "n": 16
+      },
+      {
+       "name": "placebo",
+       "n": 14
+      },
+      {
+       "name": "Tranexamic Acid",
+       "n": 14
+      },
+      {
+       "name": "Rivaroxaban",
+       "n": 13
+      }
+     ]
+    },
+    {
+     "disease": "Heart failure",
+     "trials": 631,
+     "phases": {
+      "P1": 37,
+      "P2": 89,
+      "P3": 144,
+      "P4": 185,
+      "NA": 176
+     },
+     "status": {
+      "completed": 351,
+      "ongoing": 100,
+      "stopped": 86,
+      "other": 94
+     },
+     "enrollment": 746930,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 112
+      },
+      {
+       "name": "Enalapril",
+       "n": 20
+      },
+      {
+       "name": "Furosemide",
+       "n": 20
+      },
+      {
+       "name": "Spironolactone",
+       "n": 17
+      },
+      {
+       "name": "Carvedilol",
+       "n": 17
+      },
+      {
+       "name": "Dapagliflozin",
+       "n": 17
+      }
+     ]
+    },
+    {
+     "disease": "Atrial fibrillation & arrhythmia",
+     "trials": 543,
+     "phases": {
+      "P1": 22,
+      "P2": 60,
+      "P3": 121,
+      "P4": 131,
+      "NA": 209
+     },
+     "status": {
+      "completed": 295,
+      "ongoing": 96,
+      "stopped": 58,
+      "other": 94
+     },
+     "enrollment": 4659636,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 54
+      },
+      {
+       "name": "Amiodarone",
+       "n": 42
+      },
+      {
+       "name": "Warfarin",
+       "n": 36
+      },
+      {
+       "name": "Edoxaban",
+       "n": 30
+      },
+      {
+       "name": "Apixaban",
+       "n": 29
+      },
+      {
+       "name": "Rivaroxaban (Xarelto, BAY59-7939)",
+       "n": 19
+      }
+     ]
+    },
+    {
+     "disease": "Stroke",
+     "trials": 434,
+     "phases": {
+      "P1": 29,
+      "P2": 74,
+      "P3": 110,
+      "P4": 82,
+      "NA": 139
+     },
+     "status": {
+      "completed": 214,
+      "ongoing": 112,
+      "stopped": 44,
+      "other": 64
+     },
+     "enrollment": 2493490,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 70
+      },
+      {
+       "name": "Aspirin",
+       "n": 25
+      },
+      {
+       "name": "Warfarin",
+       "n": 15
+      },
+      {
+       "name": "Clopidogrel",
+       "n": 14
+      },
+      {
+       "name": "Apixaban",
+       "n": 13
+      },
+      {
+       "name": "Rivaroxaban (Xarelto, BAY59-7939)",
+       "n": 12
+      }
+     ]
+    },
+    {
+     "disease": "Venous thromboembolism",
+     "trials": 420,
+     "phases": {
+      "P1": 30,
+      "P2": 58,
+      "P3": 135,
+      "P4": 65,
+      "NA": 132
+     },
+     "status": {
+      "completed": 277,
+      "ongoing": 46,
+      "stopped": 46,
+      "other": 51
+     },
+     "enrollment": 2108062,
+     "topInterventions": [
+      {
+       "name": "Warfarin",
+       "n": 37
+      },
+      {
+       "name": "Apixaban",
+       "n": 36
+      },
+      {
+       "name": "Enoxaparin",
+       "n": 35
+      },
+      {
+       "name": "Placebo",
+       "n": 33
+      },
+      {
+       "name": "Rivaroxaban (Xarelto, BAY59-7939)",
+       "n": 33
+      },
+      {
+       "name": "Rivaroxaban",
+       "n": 24
+      }
+     ]
+    },
+    {
+     "disease": "Pulmonary hypertension",
+     "trials": 379,
+     "phases": {
+      "P1": 42,
+      "P2": 81,
+      "P3": 116,
+      "P4": 68,
+      "NA": 72
+     },
+     "status": {
+      "completed": 217,
+      "ongoing": 44,
+      "stopped": 85,
+      "other": 33
+     },
+     "enrollment": 62416,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 79
+      },
+      {
+       "name": "Bosentan",
+       "n": 21
+      },
+      {
+       "name": "Sildenafil",
+       "n": 20
+      },
+      {
+       "name": "Ambrisentan",
+       "n": 20
+      },
+      {
+       "name": "Riociguat (Adempas, BAY63-2521)",
+       "n": 18
+      },
+      {
+       "name": "Tadalafil",
+       "n": 14
+      }
+     ]
+    },
+    {
+     "disease": "Atherosclerosis",
+     "trials": 191,
+     "phases": {
+      "P1": 15,
+      "P2": 24,
+      "P3": 46,
+      "P4": 68,
+      "NA": 38
+     },
+     "status": {
+      "completed": 114,
+      "ongoing": 29,
+      "stopped": 15,
+      "other": 33
+     },
+     "enrollment": 246546,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 44
+      },
+      {
+       "name": "Atorvastatin",
+       "n": 13
+      },
+      {
+       "name": "Ezetimibe",
+       "n": 9
+      },
+      {
+       "name": "Rosuvastatin",
+       "n": 8
+      },
+      {
+       "name": "placebo",
+       "n": 6
+      },
+      {
+       "name": "Simvastatin",
+       "n": 6
+      }
+     ]
+    },
+    {
+     "disease": "Peripheral arterial disease",
+     "trials": 96,
+     "phases": {
+      "P1": 10,
+      "P2": 8,
+      "P3": 31,
+      "P4": 17,
+      "NA": 30
+     },
+     "status": {
+      "completed": 52,
+      "ongoing": 14,
+      "stopped": 13,
+      "other": 17
+     },
+     "enrollment": 334539,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 16
+      },
+      {
+       "name": "Clopidogrel",
+       "n": 8
+      },
+      {
+       "name": "PF-00489791",
+       "n": 6
+      },
+      {
+       "name": "Aspirin",
+       "n": 5
+      },
+      {
+       "name": "Rivaroxaban (Xarelto, BAY59-7939)",
+       "n": 3
+      },
+      {
+       "name": "Ramipril",
+       "n": 3
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "area": "Metabolic & Endocrine",
+   "trials": 5101,
+   "diseases": [
+    {
+     "disease": "Type 2 diabetes",
+     "trials": 1507,
+     "phases": {
+      "P1": 223,
+      "P2": 182,
+      "P3": 457,
+      "P4": 370,
+      "NA": 275
+     },
+     "status": {
+      "completed": 1134,
+      "ongoing": 128,
+      "stopped": 134,
+      "other": 111
+     },
+     "enrollment": 5242530,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 380
+      },
+      {
+       "name": "Metformin",
+       "n": 117
+      },
+      {
+       "name": "Sitagliptin",
+       "n": 69
+      },
+      {
+       "name": "Dapagliflozin",
+       "n": 65
+      },
+      {
+       "name": "placebo",
+       "n": 63
+      },
+      {
+       "name": "Dulaglutide",
+       "n": 58
+      }
+     ]
+    },
+    {
+     "disease": "Diabetes (other/unspecified)",
+     "trials": 925,
+     "phases": {
+      "P1": 97,
+      "P2": 153,
+      "P3": 240,
+      "P4": 212,
+      "NA": 223
+     },
+     "status": {
+      "completed": 612,
+      "ongoing": 110,
+      "stopped": 96,
+      "other": 107
+     },
+     "enrollment": 3997952,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 188
+      },
+      {
+       "name": "placebo",
+       "n": 45
+      },
+      {
+       "name": "Pioglitazone",
+       "n": 24
+      },
+      {
+       "name": "exenatide",
+       "n": 22
+      },
+      {
+       "name": "Dapagliflozin",
+       "n": 22
+      },
+      {
+       "name": "insulin glargine",
+       "n": 20
+      }
+     ]
+    },
+    {
+     "disease": "Obesity & overweight",
+     "trials": 734,
+     "phases": {
+      "P1": 89,
+      "P2": 116,
+      "P3": 112,
+      "P4": 153,
+      "NA": 264
+     },
+     "status": {
+      "completed": 403,
+      "ongoing": 207,
+      "stopped": 62,
+      "other": 62
+     },
+     "enrollment": 1545288,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 175
+      },
+      {
+       "name": "Tirzepatide",
+       "n": 99
+      },
+      {
+       "name": "Semaglutide",
+       "n": 26
+      },
+      {
+       "name": "Liraglutide",
+       "n": 21
+      },
+      {
+       "name": "topiramate",
+       "n": 16
+      },
+      {
+       "name": "placebo",
+       "n": 15
+      }
+     ]
+    },
+    {
+     "disease": "Dyslipidemia",
+     "trials": 695,
+     "phases": {
+      "P1": 86,
+      "P2": 76,
+      "P3": 280,
+      "P4": 152,
+      "NA": 101
+     },
+     "status": {
+      "completed": 551,
+      "ongoing": 47,
+      "stopped": 47,
+      "other": 50
+     },
+     "enrollment": 2593874,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 118
+      },
+      {
+       "name": "Atorvastatin",
+       "n": 97
+      },
+      {
+       "name": "Ezetimibe",
+       "n": 63
+      },
+      {
+       "name": "Rosuvastatin",
+       "n": 61
+      },
+      {
+       "name": "Evolocumab",
+       "n": 44
+      },
+      {
+       "name": "Alirocumab",
+       "n": 35
+      }
+     ]
+    },
+    {
+     "disease": "Osteoporosis",
+     "trials": 466,
+     "phases": {
+      "P1": 39,
+      "P2": 61,
+      "P3": 144,
+      "P4": 120,
+      "NA": 102
+     },
+     "status": {
+      "completed": 338,
+      "ongoing": 44,
+      "stopped": 39,
+      "other": 45
+     },
+     "enrollment": 760589,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 74
+      },
+      {
+       "name": "Teriparatide",
+       "n": 52
+      },
+      {
+       "name": "Alendronate",
+       "n": 45
+      },
+      {
+       "name": "Denosumab",
+       "n": 33
+      },
+      {
+       "name": "Romosozumab",
+       "n": 29
+      },
+      {
+       "name": "Risedronate",
+       "n": 28
+      }
+     ]
+    },
+    {
+     "disease": "Thyroid & other endocrine",
+     "trials": 279,
+     "phases": {
+      "P1": 14,
+      "P2": 32,
+      "P3": 37,
+      "P4": 50,
+      "NA": 146
+     },
+     "status": {
+      "completed": 180,
+      "ongoing": 40,
+      "stopped": 28,
+      "other": 31
+     },
+     "enrollment": 610191,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 47
+      },
+      {
+       "name": "Levothyroxine",
+       "n": 29
+      },
+      {
+       "name": "Vitamin D",
+       "n": 20
+      },
+      {
+       "name": "Cholecalciferol",
+       "n": 12
+      },
+      {
+       "name": "Levothyroxin",
+       "n": 8
+      },
+      {
+       "name": "Vitamin D3",
+       "n": 7
+      }
+     ]
+    },
+    {
+     "disease": "Type 1 diabetes",
+     "trials": 218,
+     "phases": {
+      "P1": 39,
+      "P2": 62,
+      "P3": 44,
+      "P4": 19,
+      "NA": 54
+     },
+     "status": {
+      "completed": 139,
+      "ongoing": 45,
+      "stopped": 23,
+      "other": 11
+     },
+     "enrollment": 58719,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 65
+      },
+      {
+       "name": "Liraglutide",
+       "n": 7
+      },
+      {
+       "name": "SB-509",
+       "n": 6
+      },
+      {
+       "name": "Tirzepatide",
+       "n": 5
+      },
+      {
+       "name": "Golimumab",
+       "n": 4
+      },
+      {
+       "name": "insulin glargine",
+       "n": 4
+      }
+     ]
+    },
+    {
+     "disease": "Metabolic syndrome",
+     "trials": 157,
+     "phases": {
+      "P1": 9,
+      "P2": 23,
+      "P3": 24,
+      "P4": 42,
+      "NA": 59
+     },
+     "status": {
+      "completed": 105,
+      "ongoing": 14,
+      "stopped": 20,
+      "other": 18
+     },
+     "enrollment": 46907,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 23
+      },
+      {
+       "name": "placebo",
+       "n": 7
+      },
+      {
+       "name": "Fenofibrate /Metformin",
+       "n": 6
+      },
+      {
+       "name": "Atorvastatin",
+       "n": 6
+      },
+      {
+       "name": "Rosuvastatin",
+       "n": 4
+      },
+      {
+       "name": "Ramipril",
+       "n": 4
+      }
+     ]
+    },
+    {
+     "disease": "NAFLD / NASH",
+     "trials": 120,
+     "phases": {
+      "P1": 21,
+      "P2": 46,
+      "P3": 12,
+      "P4": 17,
+      "NA": 24
+     },
+     "status": {
+      "completed": 71,
+      "ongoing": 19,
+      "stopped": 18,
+      "other": 12
+     },
+     "enrollment": 16498,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 47
+      },
+      {
+       "name": "Vitamin E",
+       "n": 6
+      },
+      {
+       "name": "Semaglutide",
+       "n": 5
+      },
+      {
+       "name": "BMS-986036",
+       "n": 4
+      },
+      {
+       "name": "Placebos",
+       "n": 3
+      },
+      {
+       "name": "Exenatide",
+       "n": 3
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "area": "Neurology",
+   "trials": 3981,
+   "diseases": [
+    {
+     "disease": "Dementia & cognitive impairment",
+     "trials": 655,
+     "phases": {
+      "P1": 47,
+      "P2": 127,
+      "P3": 125,
+      "P4": 157,
+      "NA": 199
+     },
+     "status": {
+      "completed": 390,
+      "ongoing": 137,
+      "stopped": 68,
+      "other": 60
+     },
+     "enrollment": 228207,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 141
+      },
+      {
+       "name": "Morphine",
+       "n": 18
+      },
+      {
+       "name": "Memantine",
+       "n": 17
+      },
+      {
+       "name": "Donepezil",
+       "n": 16
+      },
+      {
+       "name": "Ketamine",
+       "n": 14
+      },
+      {
+       "name": "Fentanyl",
+       "n": 13
+      }
+     ]
+    },
+    {
+     "disease": "Epilepsy",
+     "trials": 592,
+     "phases": {
+      "P1": 69,
+      "P2": 102,
+      "P3": 171,
+      "P4": 112,
+      "NA": 138
+     },
+     "status": {
+      "completed": 427,
+      "ongoing": 52,
+      "stopped": 55,
+      "other": 58
+     },
+     "enrollment": 2600262,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 81
+      },
+      {
+       "name": "Levetiracetam",
+       "n": 68
+      },
+      {
+       "name": "Lacosamide",
+       "n": 40
+      },
+      {
+       "name": "Perampanel",
+       "n": 32
+      },
+      {
+       "name": "Lamotrigine",
+       "n": 23
+      },
+      {
+       "name": "topiramate",
+       "n": 21
+      }
+     ]
+    },
+    {
+     "disease": "Migraine & headache",
+     "trials": 589,
+     "phases": {
+      "P1": 45,
+      "P2": 69,
+      "P3": 198,
+      "P4": 120,
+      "NA": 157
+     },
+     "status": {
+      "completed": 387,
+      "ongoing": 91,
+      "stopped": 57,
+      "other": 54
+     },
+     "enrollment": 278131,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 157
+      },
+      {
+       "name": "Erenumab",
+       "n": 37
+      },
+      {
+       "name": "Rimegepant",
+       "n": 32
+      },
+      {
+       "name": "Topiramate",
+       "n": 25
+      },
+      {
+       "name": "Galcanezumab",
+       "n": 24
+      },
+      {
+       "name": "Sumatriptan",
+       "n": 24
+      }
+     ]
+    },
+    {
+     "disease": "Alzheimer's disease",
+     "trials": 585,
+     "phases": {
+      "P1": 109,
+      "P2": 134,
+      "P3": 129,
+      "P4": 79,
+      "NA": 134
+     },
+     "status": {
+      "completed": 355,
+      "ongoing": 121,
+      "stopped": 72,
+      "other": 37
+     },
+     "enrollment": 220980,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 161
+      },
+      {
+       "name": "Donepezil",
+       "n": 42
+      },
+      {
+       "name": "Memantine",
+       "n": 21
+      },
+      {
+       "name": "BMS-708163",
+       "n": 19
+      },
+      {
+       "name": "placebo",
+       "n": 10
+      },
+      {
+       "name": "Rivastigmine",
+       "n": 10
+      }
+     ]
+    },
+    {
+     "disease": "Parkinson's disease",
+     "trials": 559,
+     "phases": {
+      "P1": 86,
+      "P2": 133,
+      "P3": 116,
+      "P4": 89,
+      "NA": 135
+     },
+     "status": {
+      "completed": 372,
+      "ongoing": 74,
+      "stopped": 64,
+      "other": 49
+     },
+     "enrollment": 113822,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 114
+      },
+      {
+       "name": "BIA 9-1067",
+       "n": 27
+      },
+      {
+       "name": "Rasagiline",
+       "n": 21
+      },
+      {
+       "name": "Pramipexole",
+       "n": 17
+      },
+      {
+       "name": "placebo",
+       "n": 14
+      },
+      {
+       "name": "E2007",
+       "n": 10
+      }
+     ]
+    },
+    {
+     "disease": "Neuropathy & neuropathic pain",
+     "trials": 261,
+     "phases": {
+      "P1": 20,
+      "P2": 60,
+      "P3": 67,
+      "P4": 47,
+      "NA": 67
+     },
+     "status": {
+      "completed": 154,
+      "ongoing": 33,
+      "stopped": 41,
+      "other": 33
+     },
+     "enrollment": 2412044,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 53
+      },
+      {
+       "name": "Pregabalin",
+       "n": 25
+      },
+      {
+       "name": "placebo",
+       "n": 13
+      },
+      {
+       "name": "Gabapentin",
+       "n": 10
+      },
+      {
+       "name": "Ketamine",
+       "n": 7
+      },
+      {
+       "name": "pregabalin",
+       "n": 7
+      }
+     ]
+    },
+    {
+     "disease": "Multiple sclerosis",
+     "trials": 204,
+     "phases": {
+      "P1": 21,
+      "P2": 64,
+      "P3": 44,
+      "P4": 19,
+      "NA": 56
+     },
+     "status": {
+      "completed": 128,
+      "ongoing": 27,
+      "stopped": 29,
+      "other": 20
+     },
+     "enrollment": 30169,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 46
+      },
+      {
+       "name": "placebo",
+       "n": 8
+      },
+      {
+       "name": "methylprednisolone",
+       "n": 6
+      },
+      {
+       "name": "Simvastatin",
+       "n": 5
+      },
+      {
+       "name": "GW-1000-02",
+       "n": 4
+      },
+      {
+       "name": "Methylprednisolone",
+       "n": 4
+      }
+     ]
+    },
+    {
+     "disease": "Brain & spinal cord injury",
+     "trials": 204,
+     "phases": {
+      "P1": 20,
+      "P2": 47,
+      "P3": 32,
+      "P4": 47,
+      "NA": 58
+     },
+     "status": {
+      "completed": 111,
+      "ongoing": 34,
+      "stopped": 30,
+      "other": 29
+     },
+     "enrollment": 20768,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 54
+      },
+      {
+       "name": "Levetiracetam",
+       "n": 6
+      },
+      {
+       "name": "placebo",
+       "n": 6
+      },
+      {
+       "name": "Propranolol",
+       "n": 6
+      },
+      {
+       "name": "Romosozumab",
+       "n": 4
+      },
+      {
+       "name": "Memantine",
+       "n": 4
+      }
+     ]
+    },
+    {
+     "disease": "Restless legs & movement",
+     "trials": 170,
+     "phases": {
+      "P1": 11,
+      "P2": 36,
+      "P3": 36,
+      "P4": 29,
+      "NA": 58
+     },
+     "status": {
+      "completed": 108,
+      "ongoing": 28,
+      "stopped": 19,
+      "other": 15
+     },
+     "enrollment": 138793,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 38
+      },
+      {
+       "name": "Pramipexole",
+       "n": 13
+      },
+      {
+       "name": "Ropinirole",
+       "n": 8
+      },
+      {
+       "name": "pramipexole",
+       "n": 6
+      },
+      {
+       "name": "placebo",
+       "n": 6
+      },
+      {
+       "name": "Propranolol",
+       "n": 3
+      }
+     ]
+    },
+    {
+     "disease": "ALS & motor neuron",
+     "trials": 162,
+     "phases": {
+      "P1": 21,
+      "P2": 56,
+      "P3": 35,
+      "P4": 7,
+      "NA": 43
+     },
+     "status": {
+      "completed": 86,
+      "ongoing": 40,
+      "stopped": 17,
+      "other": 19
+     },
+     "enrollment": 42977,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 24
+      },
+      {
+       "name": "Risdiplam",
+       "n": 17
+      },
+      {
+       "name": "Nusinersen",
+       "n": 15
+      },
+      {
+       "name": "Riluzole",
+       "n": 14
+      },
+      {
+       "name": "nusinersen",
+       "n": 8
+      },
+      {
+       "name": "Tofersen",
+       "n": 5
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "area": "Immunology & Inflammation",
+   "trials": 3618,
+   "diseases": [
+    {
+     "disease": "Rheumatoid arthritis",
+     "trials": 813,
+     "phases": {
+      "P1": 71,
+      "P2": 133,
+      "P3": 251,
+      "P4": 140,
+      "NA": 218
+     },
+     "status": {
+      "completed": 603,
+      "ongoing": 68,
+      "stopped": 73,
+      "other": 69
+     },
+     "enrollment": 1489870,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 144
+      },
+      {
+       "name": "Methotrexate",
+       "n": 102
+      },
+      {
+       "name": "CP-690,550",
+       "n": 45
+      },
+      {
+       "name": "Abatacept",
+       "n": 42
+      },
+      {
+       "name": "Tocilizumab",
+       "n": 42
+      },
+      {
+       "name": "tocilizumab [RoActemra/Actemra]",
+       "n": 36
+      }
+     ]
+    },
+    {
+     "disease": "Autoimmune / inflammatory (other)",
+     "trials": 620,
+     "phases": {
+      "P1": 57,
+      "P2": 126,
+      "P3": 169,
+      "P4": 82,
+      "NA": 186
+     },
+     "status": {
+      "completed": 335,
+      "ongoing": 142,
+      "stopped": 70,
+      "other": 73
+     },
+     "enrollment": 204122,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 100
+      },
+      {
+       "name": "Vedolizumab",
+       "n": 31
+      },
+      {
+       "name": "Mesalamine",
+       "n": 21
+      },
+      {
+       "name": "Infliximab",
+       "n": 20
+      },
+      {
+       "name": "Omalizumab",
+       "n": 15
+      },
+      {
+       "name": "Golimumab",
+       "n": 12
+      }
+     ]
+    },
+    {
+     "disease": "Inflammatory bowel disease",
+     "trials": 486,
+     "phases": {
+      "P1": 25,
+      "P2": 100,
+      "P3": 111,
+      "P4": 59,
+      "NA": 191
+     },
+     "status": {
+      "completed": 221,
+      "ongoing": 140,
+      "stopped": 76,
+      "other": 49
+     },
+     "enrollment": 159344,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 69
+      },
+      {
+       "name": "Infliximab",
+       "n": 28
+      },
+      {
+       "name": "Vedolizumab",
+       "n": 22
+      },
+      {
+       "name": "Adalimumab",
+       "n": 17
+      },
+      {
+       "name": "Ustekinumab",
+       "n": 16
+      },
+      {
+       "name": "Guselkumab",
+       "n": 15
+      }
+     ]
+    },
+    {
+     "disease": "Graft-vs-host & transplant immunity",
+     "trials": 403,
+     "phases": {
+      "P1": 28,
+      "P2": 90,
+      "P3": 71,
+      "P4": 140,
+      "NA": 74
+     },
+     "status": {
+      "completed": 286,
+      "ongoing": 33,
+      "stopped": 44,
+      "other": 40
+     },
+     "enrollment": 56031,
+     "topInterventions": [
+      {
+       "name": "Tacrolimus",
+       "n": 52
+      },
+      {
+       "name": "Sirolimus",
+       "n": 25
+      },
+      {
+       "name": "tacrolimus",
+       "n": 17
+      },
+      {
+       "name": "mycophenolate mofetil",
+       "n": 16
+      },
+      {
+       "name": "Prograf",
+       "n": 16
+      },
+      {
+       "name": "Placebo",
+       "n": 15
+      }
+     ]
+    },
+    {
+     "disease": "Psoriasis & psoriatic arthritis",
+     "trials": 316,
+     "phases": {
+      "P1": 38,
+      "P2": 65,
+      "P3": 125,
+      "P4": 40,
+      "NA": 48
+     },
+     "status": {
+      "completed": 235,
+      "ongoing": 43,
+      "stopped": 19,
+      "other": 19
+     },
+     "enrollment": 112955,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 78
+      },
+      {
+       "name": "Guselkumab",
+       "n": 24
+      },
+      {
+       "name": "CP-690,550",
+       "n": 22
+      },
+      {
+       "name": "Ixekizumab",
+       "n": 17
+      },
+      {
+       "name": "Methotrexate",
+       "n": 17
+      },
+      {
+       "name": "Risankizumab",
+       "n": 15
+      }
+     ]
+    },
+    {
+     "disease": "Lupus",
+     "trials": 259,
+     "phases": {
+      "P1": 33,
+      "P2": 72,
+      "P3": 62,
+      "P4": 30,
+      "NA": 62
+     },
+     "status": {
+      "completed": 134,
+      "ongoing": 57,
+      "stopped": 38,
+      "other": 30
+     },
+     "enrollment": 26068959,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 63
+      },
+      {
+       "name": "Anifrolumab",
+       "n": 21
+      },
+      {
+       "name": "Belimumab",
+       "n": 19
+      },
+      {
+       "name": "Mycophenolate Mofetil",
+       "n": 12
+      },
+      {
+       "name": "Rituximab",
+       "n": 8
+      },
+      {
+       "name": "Prednisone",
+       "n": 8
+      }
+     ]
+    },
+    {
+     "disease": "Allergic rhinitis & allergy",
+     "trials": 232,
+     "phases": {
+      "P1": 24,
+      "P2": 44,
+      "P3": 85,
+      "P4": 40,
+      "NA": 39
+     },
+     "status": {
+      "completed": 175,
+      "ongoing": 21,
+      "stopped": 14,
+      "other": 22
+     },
+     "enrollment": 53419,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 58
+      },
+      {
+       "name": "placebo",
+       "n": 7
+      },
+      {
+       "name": "SB-705498",
+       "n": 7
+      },
+      {
+       "name": "Budesonide",
+       "n": 5
+      },
+      {
+       "name": "Montelukast",
+       "n": 5
+      },
+      {
+       "name": "montelukast sodium",
+       "n": 5
+      }
+     ]
+    },
+    {
+     "disease": "Scleroderma & connective tissue",
+     "trials": 208,
+     "phases": {
+      "P1": 17,
+      "P2": 76,
+      "P3": 60,
+      "P4": 25,
+      "NA": 30
+     },
+     "status": {
+      "completed": 120,
+      "ongoing": 39,
+      "stopped": 18,
+      "other": 31
+     },
+     "enrollment": 35891,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 41
+      },
+      {
+       "name": "Rituximab",
+       "n": 13
+      },
+      {
+       "name": "Belimumab",
+       "n": 11
+      },
+      {
+       "name": "Mycophenolate Mofetil",
+       "n": 8
+      },
+      {
+       "name": "Azathioprine",
+       "n": 7
+      },
+      {
+       "name": "Abatacept",
+       "n": 6
+      }
+     ]
+    },
+    {
+     "disease": "Atopic dermatitis",
+     "trials": 168,
+     "phases": {
+      "P1": 23,
+      "P2": 42,
+      "P3": 48,
+      "P4": 21,
+      "NA": 34
+     },
+     "status": {
+      "completed": 111,
+      "ongoing": 35,
+      "stopped": 14,
+      "other": 8
+     },
+     "enrollment": 44200,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 51
+      },
+      {
+       "name": "Dupilumab",
+       "n": 19
+      },
+      {
+       "name": "Baricitinib",
+       "n": 9
+      },
+      {
+       "name": "PF-04965842 100 mg",
+       "n": 5
+      },
+      {
+       "name": "PF-04965842 200 mg",
+       "n": 5
+      },
+      {
+       "name": "PF-04965842",
+       "n": 5
+      }
+     ]
+    },
+    {
+     "disease": "Ankylosing spondylitis",
+     "trials": 113,
+     "phases": {
+      "P1": 7,
+      "P2": 23,
+      "P3": 34,
+      "P4": 17,
+      "NA": 32
+     },
+     "status": {
+      "completed": 78,
+      "ongoing": 4,
+      "stopped": 17,
+      "other": 14
+     },
+     "enrollment": 37352,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 22
+      },
+      {
+       "name": "Infliximab",
+       "n": 8
+      },
+      {
+       "name": "Adalimumab",
+       "n": 7
+      },
+      {
+       "name": "Celecoxib",
+       "n": 6
+      },
+      {
+       "name": "Methotrexate",
+       "n": 5
+      },
+      {
+       "name": "Golimumab",
+       "n": 5
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "area": "Respiratory",
+   "trials": 2760,
+   "diseases": [
+    {
+     "disease": "Asthma",
+     "trials": 950,
+     "phases": {
+      "P1": 97,
+      "P2": 162,
+      "P3": 289,
+      "P4": 197,
+      "NA": 205
+     },
+     "status": {
+      "completed": 697,
+      "ongoing": 77,
+      "stopped": 98,
+      "other": 78
+     },
+     "enrollment": 1500281,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 189
+      },
+      {
+       "name": "Omalizumab",
+       "n": 40
+      },
+      {
+       "name": "Benralizumab",
+       "n": 37
+      },
+      {
+       "name": "Mepolizumab",
+       "n": 26
+      },
+      {
+       "name": "Montelukast",
+       "n": 26
+      },
+      {
+       "name": "Albuterol",
+       "n": 24
+      }
+     ]
+    },
+    {
+     "disease": "Respiratory (other)",
+     "trials": 629,
+     "phases": {
+      "P1": 48,
+      "P2": 144,
+      "P3": 185,
+      "P4": 99,
+      "NA": 153
+     },
+     "status": {
+      "completed": 361,
+      "ongoing": 72,
+      "stopped": 113,
+      "other": 83
+     },
+     "enrollment": 7072736,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 154
+      },
+      {
+       "name": "Hydroxychloroquine",
+       "n": 18
+      },
+      {
+       "name": "Benralizumab",
+       "n": 16
+      },
+      {
+       "name": "Dexamethasone",
+       "n": 14
+      },
+      {
+       "name": "CP-690,550",
+       "n": 13
+      },
+      {
+       "name": "placebo",
+       "n": 10
+      }
+     ]
+    },
+    {
+     "disease": "COPD",
+     "trials": 557,
+     "phases": {
+      "P1": 65,
+      "P2": 103,
+      "P3": 160,
+      "P4": 112,
+      "NA": 117
+     },
+     "status": {
+      "completed": 419,
+      "ongoing": 38,
+      "stopped": 60,
+      "other": 40
+     },
+     "enrollment": 624367,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 132
+      },
+      {
+       "name": "Roflumilast",
+       "n": 33
+      },
+      {
+       "name": "Tiotropium",
+       "n": 25
+      },
+      {
+       "name": "placebo",
+       "n": 15
+      },
+      {
+       "name": "Salmeterol",
+       "n": 15
+      },
+      {
+       "name": "Formoterol",
+       "n": 12
+      }
+     ]
+    },
+    {
+     "disease": "Pulmonary fibrosis / ILD",
+     "trials": 236,
+     "phases": {
+      "P1": 25,
+      "P2": 63,
+      "P3": 71,
+      "P4": 24,
+      "NA": 53
+     },
+     "status": {
+      "completed": 129,
+      "ongoing": 50,
+      "stopped": 26,
+      "other": 31
+     },
+     "enrollment": 71760,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 72
+      },
+      {
+       "name": "Pirfenidone",
+       "n": 46
+      },
+      {
+       "name": "Nintedanib",
+       "n": 33
+      },
+      {
+       "name": "BIBF 1120",
+       "n": 9
+      },
+      {
+       "name": "Inhaled Treprostinil",
+       "n": 8
+      },
+      {
+       "name": "nintedanib",
+       "n": 8
+      }
+     ]
+    },
+    {
+     "disease": "Cystic fibrosis",
+     "trials": 199,
+     "phases": {
+      "P1": 22,
+      "P2": 44,
+      "P3": 54,
+      "P4": 10,
+      "NA": 69
+     },
+     "status": {
+      "completed": 140,
+      "ongoing": 20,
+      "stopped": 19,
+      "other": 20
+     },
+     "enrollment": 25646,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 47
+      },
+      {
+       "name": "Ivacaftor",
+       "n": 33
+      },
+      {
+       "name": "IVA",
+       "n": 27
+      },
+      {
+       "name": "ELX/TEZ/IVA",
+       "n": 15
+      },
+      {
+       "name": "VX-770",
+       "n": 11
+      },
+      {
+       "name": "LUM/IVA",
+       "n": 10
+      }
+     ]
+    },
+    {
+     "disease": "Sleep apnea",
+     "trials": 189,
+     "phases": {
+      "P1": 14,
+      "P2": 37,
+      "P3": 30,
+      "P4": 40,
+      "NA": 68
+     },
+     "status": {
+      "completed": 123,
+      "ongoing": 26,
+      "stopped": 25,
+      "other": 15
+     },
+     "enrollment": 176811,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 52
+      },
+      {
+       "name": "Trazodone",
+       "n": 8
+      },
+      {
+       "name": "Eszopiclone",
+       "n": 6
+      },
+      {
+       "name": "Modafinil",
+       "n": 5
+      },
+      {
+       "name": "CPAP",
+       "n": 5
+      },
+      {
+       "name": "Atomoxetine",
+       "n": 5
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "area": "Infectious Disease",
+   "trials": 1728,
+   "diseases": [
+    {
+     "disease": "Infectious (other)",
+     "trials": 487,
+     "phases": {
+      "P1": 61,
+      "P2": 120,
+      "P3": 112,
+      "P4": 71,
+      "NA": 123
+     },
+     "status": {
+      "completed": 323,
+      "ongoing": 71,
+      "stopped": 35,
+      "other": 58
+     },
+     "enrollment": 28277651,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 48
+      },
+      {
+       "name": "Amoxicillin",
+       "n": 10
+      },
+      {
+       "name": "Lansoprazole",
+       "n": 8
+      },
+      {
+       "name": "Probenecid",
+       "n": 7
+      },
+      {
+       "name": "placebo",
+       "n": 6
+      },
+      {
+       "name": "Dexamethasone",
+       "n": 6
+      }
+     ]
+    },
+    {
+     "disease": "COVID-19",
+     "trials": 465,
+     "phases": {
+      "P1": 36,
+      "P2": 126,
+      "P3": 172,
+      "P4": 36,
+      "NA": 95
+     },
+     "status": {
+      "completed": 212,
+      "ongoing": 21,
+      "stopped": 132,
+      "other": 100
+     },
+     "enrollment": 598469,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 102
+      },
+      {
+       "name": "Hydroxychloroquine",
+       "n": 66
+      },
+      {
+       "name": "Tocilizumab",
+       "n": 18
+      },
+      {
+       "name": "Dexamethasone",
+       "n": 17
+      },
+      {
+       "name": "Placebo oral tablet",
+       "n": 17
+      },
+      {
+       "name": "Baricitinib",
+       "n": 11
+      }
+     ]
+    },
+    {
+     "disease": "HIV/AIDS",
+     "trials": 363,
+     "phases": {
+      "P1": 105,
+      "P2": 95,
+      "P3": 38,
+      "P4": 43,
+      "NA": 82
+     },
+     "status": {
+      "completed": 275,
+      "ongoing": 28,
+      "stopped": 34,
+      "other": 26
+     },
+     "enrollment": 138458,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 42
+      },
+      {
+       "name": "Zidovudine",
+       "n": 9
+      },
+      {
+       "name": "ALVAC-RG Rabies Glycoprotein (vCP65)",
+       "n": 9
+      },
+      {
+       "name": "Ritonavir",
+       "n": 8
+      },
+      {
+       "name": "Pravastatin",
+       "n": 8
+      },
+      {
+       "name": "Probenecid",
+       "n": 8
+      }
+     ]
+    },
+    {
+     "disease": "Viral hepatitis",
+     "trials": 266,
+     "phases": {
+      "P1": 59,
+      "P2": 90,
+      "P3": 49,
+      "P4": 26,
+      "NA": 42
+     },
+     "status": {
+      "completed": 176,
+      "ongoing": 25,
+      "stopped": 34,
+      "other": 31
+     },
+     "enrollment": 268271,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 42
+      },
+      {
+       "name": "Ribavirin",
+       "n": 20
+      },
+      {
+       "name": "BI 201335",
+       "n": 16
+      },
+      {
+       "name": "BMS-791325",
+       "n": 11
+      },
+      {
+       "name": "ribavirin",
+       "n": 9
+      },
+      {
+       "name": "BMS-824393",
+       "n": 8
+      }
+     ]
+    },
+    {
+     "disease": "Sepsis",
+     "trials": 147,
+     "phases": {
+      "P1": 10,
+      "P2": 27,
+      "P3": 34,
+      "P4": 29,
+      "NA": 47
+     },
+     "status": {
+      "completed": 65,
+      "ongoing": 27,
+      "stopped": 22,
+      "other": 33
+     },
+     "enrollment": 61331,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 20
+      },
+      {
+       "name": "Hydrocortisone",
+       "n": 12
+      },
+      {
+       "name": "Dobutamine",
+       "n": 6
+      },
+      {
+       "name": "Melatonin",
+       "n": 5
+      },
+      {
+       "name": "Levosimendan",
+       "n": 4
+      },
+      {
+       "name": "heparin",
+       "n": 4
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "area": "Pain",
+   "trials": 1658,
+   "diseases": [
+    {
+     "disease": "Chronic & general pain",
+     "trials": 1242,
+     "phases": {
+      "P1": 120,
+      "P2": 184,
+      "P3": 326,
+      "P4": 289,
+      "NA": 323
+     },
+     "status": {
+      "completed": 822,
+      "ongoing": 136,
+      "stopped": 169,
+      "other": 115
+     },
+     "enrollment": 315456,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 281
+      },
+      {
+       "name": "Ketamine",
+       "n": 63
+      },
+      {
+       "name": "Morphine",
+       "n": 57
+      },
+      {
+       "name": "Fentanyl",
+       "n": 40
+      },
+      {
+       "name": "placebo",
+       "n": 37
+      },
+      {
+       "name": "Pregabalin",
+       "n": 30
+      }
+     ]
+    },
+    {
+     "disease": "Postoperative pain",
+     "trials": 416,
+     "phases": {
+      "P1": 16,
+      "P2": 40,
+      "P3": 77,
+      "P4": 175,
+      "NA": 108
+     },
+     "status": {
+      "completed": 249,
+      "ongoing": 78,
+      "stopped": 36,
+      "other": 53
+     },
+     "enrollment": 72115,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 89
+      },
+      {
+       "name": "Morphine",
+       "n": 37
+      },
+      {
+       "name": "Ketamine",
+       "n": 26
+      },
+      {
+       "name": "Dexamethasone",
+       "n": 22
+      },
+      {
+       "name": "Methadone",
+       "n": 18
+      },
+      {
+       "name": "Fentanyl",
+       "n": 18
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "area": "Musculoskeletal",
+   "trials": 1172,
+   "diseases": [
+    {
+     "disease": "Arthritis & MSK (other)",
+     "trials": 530,
+     "phases": {
+      "P1": 25,
+      "P2": 89,
+      "P3": 186,
+      "P4": 80,
+      "NA": 150
+     },
+     "status": {
+      "completed": 353,
+      "ongoing": 88,
+      "stopped": 56,
+      "other": 33
+     },
+     "enrollment": 592587,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 126
+      },
+      {
+       "name": "Adalimumab",
+       "n": 23
+      },
+      {
+       "name": "Methotrexate",
+       "n": 23
+      },
+      {
+       "name": "Guselkumab",
+       "n": 16
+      },
+      {
+       "name": "Tofacitinib",
+       "n": 15
+      },
+      {
+       "name": "Ixekizumab",
+       "n": 13
+      }
+     ]
+    },
+    {
+     "disease": "Osteoarthritis",
+     "trials": 428,
+     "phases": {
+      "P1": 26,
+      "P2": 56,
+      "P3": 115,
+      "P4": 81,
+      "NA": 150
+     },
+     "status": {
+      "completed": 274,
+      "ongoing": 56,
+      "stopped": 47,
+      "other": 51
+     },
+     "enrollment": 160133,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 88
+      },
+      {
+       "name": "Celecoxib",
+       "n": 18
+      },
+      {
+       "name": "Naproxen",
+       "n": 15
+      },
+      {
+       "name": "placebo",
+       "n": 12
+      },
+      {
+       "name": "Total Hip Arthroplasty",
+       "n": 10
+      },
+      {
+       "name": "Diclofenac",
+       "n": 10
+      }
+     ]
+    },
+    {
+     "disease": "Gout",
+     "trials": 117,
+     "phases": {
+      "P1": 13,
+      "P2": 30,
+      "P3": 32,
+      "P4": 26,
+      "NA": 16
+     },
+     "status": {
+      "completed": 84,
+      "ongoing": 11,
+      "stopped": 12,
+      "other": 10
+     },
+     "enrollment": 337811,
+     "topInterventions": [
+      {
+       "name": "Allopurinol",
+       "n": 42
+      },
+      {
+       "name": "Placebo",
+       "n": 22
+      },
+      {
+       "name": "Febuxostat",
+       "n": 15
+      },
+      {
+       "name": "Pegloticase",
+       "n": 10
+      },
+      {
+       "name": "Lesinurad",
+       "n": 6
+      },
+      {
+       "name": "Colchicine",
+       "n": 5
+      }
+     ]
+    },
+    {
+     "disease": "Fibromyalgia",
+     "trials": 97,
+     "phases": {
+      "P1": 3,
+      "P2": 13,
+      "P3": 35,
+      "P4": 17,
+      "NA": 29
+     },
+     "status": {
+      "completed": 59,
+      "ongoing": 14,
+      "stopped": 15,
+      "other": 9
+     },
+     "enrollment": 23293,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 22
+      },
+      {
+       "name": "Pregabalin",
+       "n": 15
+      },
+      {
+       "name": "placebo",
+       "n": 13
+      },
+      {
+       "name": "Duloxetine",
+       "n": 8
+      },
+      {
+       "name": "Placebo SL Tablet",
+       "n": 5
+      },
+      {
+       "name": "[S,S]-Reboxetine",
+       "n": 4
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "area": "Renal & Urology",
+   "trials": 1151,
+   "diseases": [
+    {
+     "disease": "Chronic kidney disease",
+     "trials": 664,
+     "phases": {
+      "P1": 83,
+      "P2": 118,
+      "P3": 142,
+      "P4": 160,
+      "NA": 161
+     },
+     "status": {
+      "completed": 401,
+      "ongoing": 89,
+      "stopped": 83,
+      "other": 91
+     },
+     "enrollment": 5684704,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 103
+      },
+      {
+       "name": "Tacrolimus",
+       "n": 15
+      },
+      {
+       "name": "Sirolimus",
+       "n": 14
+      },
+      {
+       "name": "Spironolactone",
+       "n": 14
+      },
+      {
+       "name": "Allopurinol",
+       "n": 11
+      },
+      {
+       "name": "placebo",
+       "n": 9
+      }
+     ]
+    },
+    {
+     "disease": "Urologic conditions",
+     "trials": 403,
+     "phases": {
+      "P1": 41,
+      "P2": 50,
+      "P3": 107,
+      "P4": 108,
+      "NA": 97
+     },
+     "status": {
+      "completed": 277,
+      "ongoing": 45,
+      "stopped": 26,
+      "other": 55
+     },
+     "enrollment": 163923,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 95
+      },
+      {
+       "name": "Levitra (Vardenafil, BAY38-9456)",
+       "n": 44
+      },
+      {
+       "name": "tadalafil",
+       "n": 34
+      },
+      {
+       "name": "Tadalafil",
+       "n": 33
+      },
+      {
+       "name": "Tamsulosin",
+       "n": 32
+      },
+      {
+       "name": "placebo",
+       "n": 22
+      }
+     ]
+    },
+    {
+     "disease": "Acute kidney injury & transplant",
+     "trials": 84,
+     "phases": {
+      "P1": 6,
+      "P2": 16,
+      "P3": 12,
+      "P4": 15,
+      "NA": 35
+     },
+     "status": {
+      "completed": 43,
+      "ongoing": 16,
+      "stopped": 11,
+      "other": 14
+     },
+     "enrollment": 5687248,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 13
+      },
+      {
+       "name": "Placebo oral capsule",
+       "n": 3
+      },
+      {
+       "name": "Spironolactone",
+       "n": 3
+      },
+      {
+       "name": "Furosemide",
+       "n": 3
+      },
+      {
+       "name": "Atorvastatin",
+       "n": 3
+      },
+      {
+       "name": "Ketamine",
+       "n": 2
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "area": "Gastroenterology",
+   "trials": 870,
+   "diseases": [
+    {
+     "disease": "GERD & GI (other)",
+     "trials": 645,
+     "phases": {
+      "P1": 54,
+      "P2": 92,
+      "P3": 163,
+      "P4": 156,
+      "NA": 180
+     },
+     "status": {
+      "completed": 427,
+      "ongoing": 75,
+      "stopped": 91,
+      "other": 52
+     },
+     "enrollment": 7420154,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 115
+      },
+      {
+       "name": "Esomeprazole",
+       "n": 37
+      },
+      {
+       "name": "Pantoprazole",
+       "n": 24
+      },
+      {
+       "name": "Lansoprazole",
+       "n": 22
+      },
+      {
+       "name": "placebo",
+       "n": 21
+      },
+      {
+       "name": "Rabeprazole",
+       "n": 14
+      }
+     ]
+    },
+    {
+     "disease": "Liver disease (non-cancer)",
+     "trials": 225,
+     "phases": {
+      "P1": 43,
+      "P2": 46,
+      "P3": 37,
+      "P4": 44,
+      "NA": 55
+     },
+     "status": {
+      "completed": 117,
+      "ongoing": 47,
+      "stopped": 22,
+      "other": 39
+     },
+     "enrollment": 31609,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 36
+      },
+      {
+       "name": "Carvedilol",
+       "n": 12
+      },
+      {
+       "name": "Fenofibrate",
+       "n": 8
+      },
+      {
+       "name": "Rifaximin",
+       "n": 6
+      },
+      {
+       "name": "UDCA (Ursodeoxycholic acid)",
+       "n": 5
+      },
+      {
+       "name": "UDCA",
+       "n": 5
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "area": "Ophthalmology",
+   "trials": 448,
+   "diseases": [
+    {
+     "disease": "Eye disease",
+     "trials": 448,
+     "phases": {
+      "P1": 47,
+      "P2": 147,
+      "P3": 117,
+      "P4": 65,
+      "NA": 72
+     },
+     "status": {
+      "completed": 294,
+      "ongoing": 64,
+      "stopped": 42,
+      "other": 48
+     },
+     "enrollment": 74932,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 30
+      },
+      {
+       "name": "Sirolimus",
+       "n": 12
+      },
+      {
+       "name": "AIN457",
+       "n": 12
+      },
+      {
+       "name": "Methotrexate",
+       "n": 10
+      },
+      {
+       "name": "Vehicle",
+       "n": 9
+      },
+      {
+       "name": "Placebo Ophthalmic Solution",
+       "n": 7
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "area": "Women's & Reproductive",
+   "trials": 418,
+   "diseases": [
+    {
+     "disease": "Obstetric & gynecologic",
+     "trials": 418,
+     "phases": {
+      "P1": 43,
+      "P2": 71,
+      "P3": 70,
+      "P4": 64,
+      "NA": 170
+     },
+     "status": {
+      "completed": 216,
+      "ongoing": 84,
+      "stopped": 58,
+      "other": 60
+     },
+     "enrollment": 356844,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 62
+      },
+      {
+       "name": "risedronate",
+       "n": 11
+      },
+      {
+       "name": "placebo",
+       "n": 9
+      },
+      {
+       "name": "Nifedipine",
+       "n": 9
+      },
+      {
+       "name": "TAK-385",
+       "n": 7
+      },
+      {
+       "name": "Labetalol",
+       "n": 7
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "area": "Supportive & symptomatic",
+   "trials": 354,
+   "diseases": [
+    {
+     "disease": "Nausea & vomiting",
+     "trials": 227,
+     "phases": {
+      "P1": 19,
+      "P2": 35,
+      "P3": 60,
+      "P4": 61,
+      "NA": 52
+     },
+     "status": {
+      "completed": 149,
+      "ongoing": 29,
+      "stopped": 27,
+      "other": 22
+     },
+     "enrollment": 52885,
+     "topInterventions": [
+      {
+       "name": "Ondansetron",
+       "n": 43
+      },
+      {
+       "name": "Dexamethasone",
+       "n": 38
+      },
+      {
+       "name": "Placebo",
+       "n": 38
+      },
+      {
+       "name": "Metoclopramide",
+       "n": 10
+      },
+      {
+       "name": "ondansetron",
+       "n": 8
+      },
+      {
+       "name": "placebo",
+       "n": 7
+      }
+     ]
+    },
+    {
+     "disease": "Fatigue & cachexia",
+     "trials": 127,
+     "phases": {
+      "P1": 9,
+      "P2": 33,
+      "P3": 28,
+      "P4": 21,
+      "NA": 36
+     },
+     "status": {
+      "completed": 70,
+      "ongoing": 24,
+      "stopped": 20,
+      "other": 13
+     },
+     "enrollment": 10440,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 46
+      },
+      {
+       "name": "Modafinil",
+       "n": 13
+      },
+      {
+       "name": "modafinil",
+       "n": 8
+      },
+      {
+       "name": "placebo",
+       "n": 6
+      },
+      {
+       "name": "Rituximab",
+       "n": 3
+      },
+      {
+       "name": "Melatonin",
+       "n": 2
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "area": "Dermatology",
+   "trials": 292,
+   "diseases": [
+    {
+     "disease": "Skin disease (other)",
+     "trials": 292,
+     "phases": {
+      "P1": 26,
+      "P2": 98,
+      "P3": 88,
+      "P4": 33,
+      "NA": 47
+     },
+     "status": {
+      "completed": 195,
+      "ongoing": 35,
+      "stopped": 38,
+      "other": 24
+     },
+     "enrollment": 70093,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 74
+      },
+      {
+       "name": "Omalizumab",
+       "n": 15
+      },
+      {
+       "name": "Baricitinib",
+       "n": 11
+      },
+      {
+       "name": "Dupilumab",
+       "n": 8
+      },
+      {
+       "name": "placebo",
+       "n": 7
+      },
+      {
+       "name": "Vehicle",
+       "n": 5
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "area": "Hematology (non-cancer)",
+   "trials": 270,
+   "diseases": [
+    {
+     "disease": "Sickle cell & anemia",
+     "trials": 270,
+     "phases": {
+      "P1": 43,
+      "P2": 107,
+      "P3": 55,
+      "P4": 16,
+      "NA": 49
+     },
+     "status": {
+      "completed": 149,
+      "ongoing": 44,
+      "stopped": 47,
+      "other": 30
+     },
+     "enrollment": 60174,
+     "topInterventions": [
+      {
+       "name": "Placebo",
+       "n": 32
+      },
+      {
+       "name": "Cyclosporine",
+       "n": 11
+      },
+      {
+       "name": "Sirolimus",
+       "n": 6
+      },
+      {
+       "name": "laboratory biomarker analysis",
+       "n": 6
+      },
+      {
+       "name": "PF-06741086",
+       "n": 6
+      },
+      {
+       "name": "Recombinant Factor VIII (Kogenate FS, BAY14-2222)",
+       "n": 6
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

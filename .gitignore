@@ -1,0 +1,18 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# python
+.venv/
+__pycache__/
+*.pyc
+*.pkl
+
+# local notes
+notes.local.md
+
+# data: ignore caches/artifacts but keep the reproducible seed vocab
+data/cache/
+data/artifacts/
+*.parquet
