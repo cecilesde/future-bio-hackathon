@@ -15,8 +15,10 @@ export async function GET(req: NextRequest) {
   if (!safe) return NextResponse.json({ drugs: [] });
 
   try {
+    // match the primary name OR any synonym / brand name (search_blob), so
+    // "mounjaro" / "ozempic" resolve, not just the ChEMBL preferred name.
     const drugs = await restQuery<Drug>(
-      `pg_drugs?name=ilike.*${encodeURIComponent(safe)}*` +
+      `pg_drugs?search_blob=ilike.*${encodeURIComponent(safe)}*` +
         `&select=chembl_id,name,max_phase,molecule_type,first_approval` +
         `&order=max_phase.desc.nullslast,name.asc&limit=12`
     );

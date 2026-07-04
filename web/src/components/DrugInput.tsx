@@ -107,13 +107,17 @@ export default function DrugInput({
         onFocus={() => results.length && setOpen(true)}
       />
 
-      {open && (results.length > 0 || loading) && (
+      {open && q.trim().length >= 2 && (
         <div
           className="absolute z-20 left-0 right-0 mt-1 rounded-md overflow-hidden max-h-72 overflow-y-auto"
           style={{ background: "var(--panel-solid, #0d1122)", border: "1px solid var(--line-3)" }}
         >
           {loading && results.length === 0 ? (
             <div className="px-3 py-2 mono text-[12px] t-muted">searching…</div>
+          ) : results.length === 0 ? (
+            <div className="px-3 py-2 mono text-[12px] t-muted">
+              no drug matches “{q.trim()}” in ChEMBL
+            </div>
           ) : (
             results.map((d) => {
               const already = selectedIds.has(d.chembl_id);

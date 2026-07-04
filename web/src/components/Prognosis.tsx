@@ -6,6 +6,7 @@ import Swimlanes from "./Swimlanes";
 import DrugInput from "./DrugInput";
 import {
   VerdictBand,
+  AttritionComposition,
   FailureModes,
   ModalityPanel,
   Adversarial,
@@ -13,6 +14,7 @@ import {
   CalibrationPanel,
   LiteraturePanel,
 } from "./report-parts";
+import { computeAttrition } from "@/lib/attrition";
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 
@@ -47,6 +49,9 @@ export default function Prognosis({
   );
   const report = getReport(diseaseId, symbol);
   const selected = disease.targets.find((t) => t.symbol === symbol) ?? null;
+  const score = report
+    ? computeAttrition({ report, target: selected, drugs, diseaseName: disease.name })
+    : null;
 
   function pickDisease(id: string) {
     setDiseaseId(id);
@@ -154,9 +159,10 @@ export default function Prognosis({
         </div>
       )}
 
-      {report ? (
+      {report && score ? (
         <div className="flex flex-col gap-10 pb-16" key={`${diseaseId}:${symbol}`}>
-          <VerdictBand report={report} />
+          <VerdictBand report={report} attrition={score.attrition} />
+          <AttritionComposition score={score} />
 
           <div className="rise">
             <Swimlanes cohort={report.cohort} exitPhase={report.exitPhase} />

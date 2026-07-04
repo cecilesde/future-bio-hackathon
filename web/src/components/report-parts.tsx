@@ -7,6 +7,7 @@ import type {
   Signal,
   Paper,
 } from "@/lib/types";
+import type { AttritionScore, Component } from "@/lib/attrition";
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 
@@ -25,8 +26,8 @@ function confColor(c: Report["confidence"]): string {
 }
 
 /* ------------------------------------------------------------------ verdict */
-export function VerdictBand({ report }: { report: Report }) {
-  const c = riskColor(report.attrition);
+export function VerdictBand({ report, attrition }: { report: Report; attrition: number }) {
+  const c = riskColor(attrition);
   return (
     <section className="panel p-5 sm:p-6 rise">
       <div className="grid gap-6 md:grid-cols-[auto_1fr] md:items-center">
@@ -34,7 +35,7 @@ export function VerdictBand({ report }: { report: Report }) {
           <div>
             <div className="eyebrow">Attrition risk</div>
             <div className="serif leading-none mt-2" style={{ fontSize: 64, color: c }}>
-              {pct(report.attrition)}
+              {pct(attrition)}
             </div>
             <div className="text-[12px] t-muted mt-1 max-w-[16ch]">
               probability of failure before approval
@@ -67,6 +68,70 @@ export function VerdictBand({ report }: { report: Report }) {
         </div>
       </div>
     </section>
+  );
+}
+
+/* ------------------------------------------------------ attrition composition */
+export function AttritionComposition({ score }: { score: AttritionScore }) {
+  return (
+    <section className="panel p-5 rise">
+      <div className="flex items-baseline justify-between gap-3 mb-1">
+        <div>
+          <div className="eyebrow">Attrition composition</div>
+          <h3 className="serif text-[20px] mt-1">How this number is built</h3>
+        </div>
+        <div className="text-right flex-none">
+          <div className="serif text-[30px] leading-none" style={{ color: riskColor(score.attrition) }}>
+            {pct(score.attrition)}
+          </div>
+          <div className="mono text-[10px] t-muted mt-0.5">attrition = 1 − PoS</div>
+        </div>
+      </div>
+      <p className="text-[12.5px] t-muted mb-4 max-w-[82ch] leading-snug">
+        A phase-anchored base rate adjusted by literature-grounded odds ratios in log-odds space:
+        logit(PoS) = logit(base) + Σ ln(OR). Dominated here by {score.drivenBy}. Selecting a drug
+        moves the base rate to that compound&apos;s development stage.
+      </p>
+      <div className="divide-y" style={{ borderColor: "var(--line)" }}>
+        {score.components.map((c, i) => (
+          <CompRow key={i} c={c} />
+        ))}
+      </div>
+      <p className="mono text-[10px] t-muted mt-3">
+        v1 coefficients are literature-anchored point estimates, not yet a model fitted on the
+        held-out set (see calibration).
+      </p>
+    </section>
+  );
+}
+
+function CompRow({ c }: { c: Component }) {
+  const isFactor = c.kind === "factor";
+  const isResult = c.kind === "result";
+  const display = isFactor ? `× ${c.value.toFixed(2)}` : pct(c.value);
+  const color = isFactor
+    ? c.value >= 1.05
+      ? "var(--green)"
+      : c.value <= 0.95
+        ? "var(--red)"
+        : "var(--muted)"
+    : "var(--ink)";
+  return (
+    <div className="grid gap-x-4 py-2.5 md:grid-cols-[1fr_auto] items-start">
+      <div className="min-w-0">
+        <div className="text-[13.5px] t-dim leading-snug">{c.label}</div>
+        <div className="mono text-[10px] t-muted mt-0.5">
+          {c.input}
+          {c.citation ? ` · ${c.citation}` : ""}
+        </div>
+      </div>
+      <div
+        className="mono text-[15px] tabular-nums flex-none md:text-right"
+        style={{ color, fontWeight: isResult ? 600 : 400 }}
+      >
+        {display}
+      </div>
+    </div>
   );
 }
 

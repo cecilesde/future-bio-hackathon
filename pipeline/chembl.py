@@ -51,7 +51,7 @@ def iter_drugs(min_phase: float = 1.0, page_size: int = 1000):
                 "max_phase": m.get("max_phase"),
                 "molecule_type": m.get("molecule_type"),
                 "first_approval": m.get("first_approval"),
-                "synonyms": syns[:12],
+                "synonyms": syns[:50],
             }
         if len(molecules) < page_size:
             return

@@ -202,6 +202,8 @@ def load_drugs(sb):
     for d in chembl.iter_drugs():
         if not d["name"]:
             continue
+        # searchable text = name + synonyms/brand names, so brand-name lookups work
+        d["search_blob"] = (d["name"] + " " + " ".join(d.get("synonyms") or [])).lower()
         rows.append(d)
         if len(rows) >= 1000:
             sb.table("pg_drugs").upsert(rows, on_conflict="chembl_id").execute()
