@@ -22,7 +22,7 @@ export default async function Page() {
       />
       <footer className="max-w-[1120px] mx-auto px-4 sm:px-6 py-8 hairline">
         <div className="flex flex-wrap items-center justify-between gap-3 mono text-[11px] t-muted">
-          <span>PROGNOSIS · reference-class attrition forecasting</span>
+          <span>ATTRITIO AI · reference-class attrition forecasting</span>
           <span className="t-faint">
             Targets from Open Targets · trials from AMASS · forecasts illustrative.
           </span>

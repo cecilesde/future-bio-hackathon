@@ -20,13 +20,22 @@ import {
 import { extract } from "./llm";
 import { searchPapers, type ElicitPaper } from "./elicit";
 import { restQuery } from "./supabase";
-import { getPatents, getDrugTrials, keyOf, readCache, writeCache } from "./evidence";
+import {
+  getPatents,
+  getDrugTrials,
+  getDrugApprovals,
+  getDiseaseDescendants,
+  keyOf,
+  readCache,
+  writeCache,
+} from "./evidence";
 import {
   resolveDisease,
   resolveTarget,
   associationFor,
   cohortCandidates,
   diseaseCohortCandidates,
+  isApprovedForIndication,
   type CohortCandidate,
 } from "./opentargets";
 import type {
@@ -35,6 +44,7 @@ import type {
   FailureMode,
   ModalityFeasibility,
   DeriskingStep,
+  MechanismOfAction,
   TargetAssoc,
   TrialDetail,
   Patent,
@@ -410,6 +420,60 @@ async function modalityAndRisks(
   };
 }
 
+// ------------------------------------------------------ Mechanism of action ----
+// Reconstruct the likely biological mechanism linking the drug to the disease
+// (through the selected target, if any) from the already-fetched literature +
+// patents. The confidence grade is SPECIFIC to that mechanism: if the evidence
+// does not substantiate a specific chain, the grade is Very low / Low. This is
+// pure narrative + a qualitative grade; it does NOT feed the deterministic number.
+async function mechanismLinkage(
+  input: ForecastInput,
+  papers: ElicitPaper[],
+  patents: Patent[],
+  targetSymbol?: string
+): Promise<MechanismOfAction> {
+  const drugName = input.subject?.drugName ?? (input.drugs.map((d) => d.name).join(", ") || "the drug");
+  const tgt = targetSymbol?.trim() || "";
+
+  const schema = {
+    type: "object",
+    additionalProperties: false,
+    required: ["summary", "chain", "targetsInvolved", "confidence", "confidenceReason"],
+    properties: {
+      summary: { type: "string", description: "1-2 sentences: the most likely mechanism by which the drug affects the disease" },
+      chain: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          required: ["step", "support"],
+          properties: {
+            step: { type: "string", description: "one causal link, e.g. 'Drug agonises GLP1R on pancreatic beta cells'" },
+            support: { type: "string", description: "evidence backing this link: cite [L#] papers / [P#] patents, or 'unsupported' if none" },
+          },
+        },
+      },
+      targetsInvolved: { type: "array", items: { type: "string" }, description: "HGNC symbol(s) the mechanism runs through; empty if none identified" },
+      confidence: { type: "string", enum: ["Very low", "Low", "Moderate", "High", "Very high"] },
+      confidenceReason: { type: "string", description: "one or two sentences on what evidence does and does not substantiate this specific mechanism" },
+    },
+  };
+
+  const system =
+    "You are a molecular pharmacologist. From the provided literature and patents, reconstruct the most likely biological mechanism by which a drug affects a disease (optionally through a named target): a short causal chain from the drug's molecular action to the disease-relevant effect. Ground every link strictly in the provided evidence; cite the [L#] papers or [P#] patents that support each link, and mark any link 'unsupported' if the evidence does not establish it. Do not assert links from prior knowledge alone. Then grade your confidence in THIS SPECIFIC mechanism on a five-level scale: 'Very high' = each link is directly demonstrated in this disease context by convergent literature and/or patent evidence; 'High' = the chain is well supported with only minor gaps; 'Moderate' = a plausible mechanism with partial or indirect support; 'Low' = weak or fragmentary evidence, mechanism largely speculative; 'Very low' = the evidence does not identify any specific mechanism (mechanism effectively unknown). If you cannot substantiate a mechanism, say so plainly and grade Very low or Low." +
+    STYLE;
+  const user = `Drug: ${drugName}\nDisease: ${input.diseaseName}\n${tgt ? `Selected target: ${tgt}` : "No specific target selected; identify the most likely target(s) from the evidence."}\n\nLiterature:\n${paperLines(papers)}\n\nPatent landscape (AMASS patentcore):\n${patentLines(patents)}\n\nDescribe the most likely mechanism by which ${drugName} could affect ${input.diseaseName}${tgt ? ` through ${tgt}` : ""}, grounded strictly in the evidence above, and grade your confidence in that specific mechanism.`;
+
+  const data = await extract<MechanismOfAction>(system, user, schema, { effort: "medium", maxTokens: 1600 });
+  return {
+    summary: data.summary ?? "",
+    chain: data.chain ?? [],
+    targetsInvolved: data.targetsInvolved ?? [],
+    confidence: data.confidence ?? "Very low",
+    confidenceReason: data.confidenceReason ?? "",
+  };
+}
+
 // ---------------------------------------------------------------- Stage 4 ----
 interface Judgement {
   verdict: string;
@@ -711,14 +775,31 @@ export async function generateForecast(input: ForecastInput): Promise<ForecastRe
   };
   const subjectModality = subjectModalityOf(input.drugs);
 
+  // Approved-for-indication check: if the lead drug is already approved for this
+  // disease (or a subtype of it), attrition is a hard 0. OT lookups are cached + free.
+  const leadDrug = input.drugs.reduce<Drug | null>(
+    (b, d) => (b == null || (d.max_phase ?? -1) > (b.max_phase ?? -1) ? d : b),
+    null
+  );
+  const approvedForIndication =
+    leadDrug && efoId
+      ? await Promise.all([getDrugApprovals(leadDrug.chembl_id), getDiseaseDescendants(efoId)])
+          .then(([ap, desc]) => isApprovedForIndication(ap, efoId, desc))
+          .catch(() => false)
+      : false;
+
   // Stage 1 — curate the real cohort (LLM, grounded), then attach ground-truth
   // trials from the raw Open Targets candidates (+ pg_trials completion dates),
   // then merge in any AMASS trials fetched for the drug(s) the user typed.
   const { cohort: curatedCohort, cohortSummary } = await curateCohort(input, cands, subjectModality);
   const cohort = await enrichCohortWithAmass(await attachTrials(curatedCohort, cands));
 
-  // Stage 2 — modality feasibility + failure modes + derisking (LLM, grounded).
-  const mr = await modalityAndRisks(input, cohort, elicitPapers, patents, subjectModality);
+  // Stage 2 — modality feasibility + failure modes + derisking (LLM, grounded),
+  // in parallel with the mechanism-of-action synthesis (independent LLM stage).
+  const [mr, mechanism] = await Promise.all([
+    modalityAndRisks(input, cohort, elicitPapers, patents, subjectModality),
+    mechanismLinkage(input, elicitPapers, patents, input.targetSymbol),
+  ]);
 
   // Stage 3 — compute the number (deterministic, the ONLY place it is produced).
   const partialReport = { modality: mr.modality, cohort } as unknown as Report;
@@ -727,6 +808,7 @@ export async function generateForecast(input: ForecastInput): Promise<ForecastRe
     target: targetAssoc,
     drugs: input.drugs,
     diseaseName: input.diseaseName,
+    approvedForIndication,
   });
 
   // Stage 4 — verdict, confidence, adversarial (LLM, high effort).
@@ -745,6 +827,7 @@ export async function generateForecast(input: ForecastInput): Promise<ForecastRe
     bull: j.bull,
     bear: j.bear,
     derisking: mr.derisking,
+    mechanism,
     // Calibration is not applicable to on-the-fly forecasts (no fitted model yet);
     // the UI omits the calibration panel for live reports. Kept for type shape.
     calibration: {
@@ -802,6 +885,14 @@ export async function generateForecastTargetFree(diseaseName: string, drug: Drug
   };
   const subjectModality = subjectModalityOf([drug]);
 
+  // Approved-for-indication check: hard-0 attrition if this drug is already
+  // approved for the disease (or a subtype). OT lookups are cached + free.
+  const approvedForIndication = efoId
+    ? await Promise.all([getDrugApprovals(drug.chembl_id), getDiseaseDescendants(efoId)])
+        .then(([ap, desc]) => isApprovedForIndication(ap, efoId, desc))
+        .catch(() => false)
+    : false;
+
   // Stage 1 — curate the DISEASE cohort (existing pipeline, target-free framing).
   const { cohort: curatedCohort, cohortSummary } = await curateCohort(input, cands, subjectModality);
   const cohort = await enrichCohortWithAmass(await attachTrials(curatedCohort, cands));
@@ -811,8 +902,12 @@ export async function generateForecastTargetFree(diseaseName: string, drug: Drug
   const eff = await efficacyFor(drug, diseaseName, drugTrials, effPapers);
   const efficacyScore = efficacyScoreOf(eff);
 
-  // Stage 2 — modality feasibility + failure modes + derisking.
-  const mr = await modalityAndRisks(input, cohort, effPapers, patents, subjectModality);
+  // Stage 2 — modality feasibility + failure modes + derisking, in parallel with
+  // the mechanism-of-action synthesis (no selected target: drug -> disease).
+  const [mr, mechanism] = await Promise.all([
+    modalityAndRisks(input, cohort, effPapers, patents, subjectModality),
+    mechanismLinkage(input, effPapers, patents, undefined),
+  ]);
 
   // Stage 3 — the number (deterministic), with the efficacy-evidence label.
   const partialReport = { modality: mr.modality, cohort } as unknown as Report;
@@ -823,6 +918,7 @@ export async function generateForecastTargetFree(diseaseName: string, drug: Drug
     efficacyEvidence: efficacyScore,
     efficacyRationale: eff.rationale,
     efficacyLevel: eff.level,
+    approvedForIndication,
   });
 
   // Stage 4 — verdict, confidence, adversarial.
@@ -841,6 +937,7 @@ export async function generateForecastTargetFree(diseaseName: string, drug: Drug
     bull: j.bull,
     bear: j.bear,
     derisking: mr.derisking,
+    mechanism,
     calibration: {
       nHeldOut: cohort.length,
       cutoffYear: 0,

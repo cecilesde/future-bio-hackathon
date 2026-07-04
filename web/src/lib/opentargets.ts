@@ -248,3 +248,44 @@ export async function diseaseDrugCandidates(efoId: string): Promise<DiseaseDrugR
     return [];
   }
 }
+
+// ---- approval-per-indication (for the "already approved => 0% attrition" rule) ----
+// The OT indication stage string for an approved indication is the literal
+// "APPROVAL" (NOT "PHASE_4"). Returns the set of EFO/MONDO ids the drug is
+// APPROVED for. [] on error / unknown drug.
+export async function drugApprovalIndications(chemblId: string): Promise<string[]> {
+  const q = `query($id:String!){ drug(chemblId:$id){ indications{ rows{ maxClinicalStage disease{ id } } } } }`;
+  try {
+    const d = await post<{
+      drug: { indications: { rows: { maxClinicalStage: string | null; disease: { id: string } | null }[] } | null } | null;
+    }>(q, { id: chemblId });
+    const rows = d.drug?.indications?.rows ?? [];
+    const ids = new Set<string>();
+    for (const r of rows) if (r.maxClinicalStage === "APPROVAL" && r.disease?.id) ids.add(r.disease.id);
+    return [...ids];
+  } catch {
+    return [];
+  }
+}
+
+// Descendant EFO/MONDO ids of a disease (subtypes). Used so a drug approved for a
+// subtype (e.g. major depressive disorder) counts as approved for a broader query
+// (depression). [] on error / leaf disease.
+export async function diseaseDescendants(efoId: string): Promise<string[]> {
+  const q = `query($e:String!){ disease(efoId:$e){ descendants } }`;
+  try {
+    const d = await post<{ disease: { descendants: string[] | null } | null }>(q, { e: efoId });
+    return d.disease?.descendants ?? [];
+  } catch {
+    return [];
+  }
+}
+
+// True if the drug is approved for the queried disease OR one of its subtypes
+// (descendants). Ancestor approvals do NOT count (approval for a broad parent does
+// not imply approval for a narrow subtype).
+export function isApprovedForIndication(approvedIds: string[], efoId: string, descendants: string[]): boolean {
+  if (!approvedIds.length || !efoId) return false;
+  const targetSet = new Set([efoId, ...descendants]);
+  return approvedIds.some((id) => targetSet.has(id));
+}

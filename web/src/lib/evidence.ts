@@ -13,6 +13,7 @@
 import { createHash } from "crypto";
 import { restQuery } from "./supabase";
 import { searchPatents, searchDrugTrials } from "./amass";
+import { drugApprovalIndications, diseaseDescendants } from "./opentargets";
 import type { Patent, TrialDetail } from "./types";
 
 export function keyOf(kind: string, ref: string): string {
@@ -74,4 +75,31 @@ export async function getDrugTrials(drug: string): Promise<TrialDetail[]> {
   const { trials, outOfCredits } = await searchDrugTrials(ref, 15);
   if (!outOfCredits && trials.length) await writeCache(cacheKey, "drug_trials", ref, trials);
   return trials;
+}
+
+// Approved indication ids (EFO/MONDO) for a drug, cached by chemblId. OT is free
+// (no credits), so this just avoids re-querying the same drug across forecasts.
+export async function getDrugApprovals(chemblId: string): Promise<string[]> {
+  const ref = chemblId.trim();
+  if (!ref) return [];
+  const cacheKey = keyOf("drug_approvals", ref);
+  const cached = await readCache<string>(cacheKey);
+  if (cached) return cached;
+
+  const ids = await drugApprovalIndications(ref).catch(() => [] as string[]);
+  if (ids.length) await writeCache(cacheKey, "drug_approvals", ref, ids);
+  return ids;
+}
+
+// Descendant (subtype) ids for a disease EFO, cached by efoId.
+export async function getDiseaseDescendants(efoId: string): Promise<string[]> {
+  const ref = efoId.trim();
+  if (!ref) return [];
+  const cacheKey = keyOf("disease_descendants", ref);
+  const cached = await readCache<string>(cacheKey);
+  if (cached) return cached;
+
+  const ids = await diseaseDescendants(ref).catch(() => [] as string[]);
+  if (ids.length) await writeCache(cacheKey, "disease_descendants", ref, ids);
+  return ids;
 }

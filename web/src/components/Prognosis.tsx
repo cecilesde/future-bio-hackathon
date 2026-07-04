@@ -9,6 +9,7 @@ import PredictionPanel from "./PredictionPanel";
 import {
   VerdictBand,
   AttritionComposition,
+  MechanismPanel,
   FailureModes,
   ModalityPanel,
   Adversarial,
@@ -171,6 +172,34 @@ export default function Prognosis({
     }
   }
 
+  // ---- unified Compute dispatch: pick the lens from whatever inputs are filled ----
+  // disease + target (± drug) -> target lens; disease + drug (no target) -> target-free
+  // lens; disease only -> discovery (ranked drug table). This is the single action
+  // the user takes; the panels below just render whatever it produced.
+  const computeMode: "none" | "discovery" | "target" | "targetfree" =
+    !diseaseName ? "none" : symbol ? "target" : drugs.length > 0 ? "targetfree" : "discovery";
+  const computeBusy = liveState === "loading" || discovering || tfForCurrent?.state === "loading";
+  const computeHint =
+    computeMode === "none"
+      ? "Enter a disease to begin. Add a target for a target-based forecast, a drug for a target-free forecast, or neither to discover and rank candidate drugs."
+      : computeMode === "discovery"
+        ? `Disease only: discover and rank candidate drugs for ${diseaseName} (no target or drug needed).`
+        : computeMode === "target"
+          ? `Target lens: reference-class forecast for ${symbol} in ${diseaseName}${drugs.length ? ` (drug: ${drugs.map((d) => d.name).join(", ")})` : ""}.`
+          : `Target-free lens: forecast for ${drugs.map((d) => d.name).join(", ")} in ${diseaseName}, no target.`;
+  const computeLabel =
+    computeMode === "discovery"
+      ? "Discover drugs"
+      : computeMode === "targetfree"
+        ? "Run target-free forecast"
+        : "Run forecast";
+
+  function runCompute() {
+    if (computeMode === "target") runLive();
+    else if (computeMode === "targetfree" && drugs[0]) runTargetFree(drugs[0]);
+    else if (computeMode === "discovery") runDiscovery();
+  }
+
   return (
     <div className="max-w-[1120px] mx-auto px-4 sm:px-6">
       <Header />
@@ -198,6 +227,7 @@ export default function Prognosis({
               onSelect={setDiseaseSel}
               endpoint="/api/diseases"
               placeholder="Type a disease…"
+              allowFreeText
             />
             <p className="mono text-[10px] mt-1" style={{ color: diseaseId ? "var(--green)" : "var(--faint)" }}>
               {diseaseId ? "● modeled disease" : "AMASS disease set · autocomplete"}
@@ -220,11 +250,23 @@ export default function Prognosis({
             <p className="mono text-[10px] t-muted mt-1">ChEMBL · approved + experimental</p>
           </div>
         </div>
-        <p className="text-[11.5px] t-muted mt-4 leading-snug max-w-[92ch]">
-          Fill any two of disease · target · drug and the third is predicted (the evidence engine
-          that resolves untyped inputs from Elicit + AMASS is in progress). The drug&apos;s
-          development stage conditions the attrition base rate.
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-4 mt-4">
+          <p className="text-[11.5px] t-muted leading-snug max-w-[70ch] flex-1 min-w-[240px]">
+            {computeHint}
+          </p>
+          <button
+            onClick={runCompute}
+            disabled={computeMode === "none" || computeBusy}
+            className="mono text-[13px] px-6 py-2.5 rounded-md disabled:opacity-50 flex-none"
+            style={{
+              background: computeMode === "none" ? "var(--bg-2)" : "var(--accent-dim)",
+              border: "1px solid var(--accent)",
+              color: "var(--accent)",
+            }}
+          >
+            {computeBusy ? "Computing…" : `${computeLabel} →`}
+          </button>
+        </div>
       </section>
 
       {/* fill-two-predict-third: Claude + Elicit */}
@@ -322,8 +364,9 @@ function ReportView({
 }) {
   return (
     <div className="flex flex-col gap-10 pb-16" key={keyId}>
-      <VerdictBand report={report} attrition={score.attrition} />
+      <VerdictBand report={report} attrition={score.attrition} approved={score.approved} />
       <AttritionComposition score={score} />
+      <MechanismPanel mechanism={report.mechanism} />
 
       <div className="rise">
         <Swimlanes cohort={report.cohort} exitPhase={report.exitPhase} />
@@ -392,14 +435,16 @@ function LiveForecastPrompt({
   error: string;
   onRun: () => void;
 }) {
+  void onRun; // action now lives on the unified Compute button in the input card
   const ready = !!(diseaseName && symbol);
   if (!ready) {
     return (
       <div className="panel p-8 text-center mb-16 rise">
-        <div className="serif text-[22px] mb-2">Enter a disease and a target</div>
-        <p className="t-muted text-[14px] max-w-[62ch] mx-auto leading-relaxed">
-          Pick any disease and any target. If it is not one of the authored demo pairs, a live
-          forecast is assembled from Open Targets clinical data and Elicit literature.
+        <div className="serif text-[22px] mb-2">Enter your inputs, then press Compute</div>
+        <p className="t-muted text-[14px] max-w-[64ch] mx-auto leading-relaxed">
+          Disease + target runs a target-based forecast; disease + drug (no target) runs a
+          target-free forecast; a disease alone discovers and ranks candidate drugs. Non-authored
+          pairs are assembled live from Open Targets clinical data and Elicit literature.
         </p>
       </div>
     );
@@ -407,27 +452,19 @@ function LiveForecastPrompt({
   return (
     <div className="panel p-8 text-center mb-16 rise">
       <div className="serif text-[22px] mb-2">
-        Live forecast for {symbol} in {diseaseName}
+        {state === "loading" ? "Assembling forecast… (up to ~2 min)" : `Ready: ${symbol} in ${diseaseName}`}
       </div>
       <p className="t-muted text-[14px] max-w-[64ch] mx-auto leading-relaxed">
-        This pair is not in the authored demo set. Assemble a forecast live: the reference cohort is
-        pulled from Open Targets clinical data, literature from Elicit, and the failure modes,
-        modality feasibility and verdict are generated by Claude over that evidence. The attrition
-        number is computed deterministically.
+        This pair is not in the authored demo set. Press <span className="t-accent">Run forecast</span>{" "}
+        above to assemble it live: the reference cohort is pulled from Open Targets clinical data,
+        literature from Elicit, and the failure modes, modality feasibility and verdict are generated
+        by Claude over that evidence. The attrition number is computed deterministically.
       </p>
       {state === "error" && (
         <p className="mono text-[12px] mt-4" style={{ color: "var(--red)" }}>
           {error}
         </p>
       )}
-      <button
-        onClick={onRun}
-        disabled={state === "loading"}
-        className="mt-5 pill mono text-[13px] px-5 py-2 disabled:opacity-60"
-        style={{ borderColor: "var(--accent)", color: "var(--accent)" }}
-      >
-        {state === "loading" ? "Assembling forecast… (up to ~2 min)" : "Run live forecast"}
-      </button>
       {state === "loading" && (
         <p className="mono text-[11px] t-muted mt-3">
           Resolving target · pulling cohort · curating analogues · scoring modality · computing
@@ -453,34 +490,58 @@ function DrugDiscoveryPanel({
   onRun: () => void;
   onPick: (drug: Drug) => void;
 }) {
+  const [hideApproved, setHideApproved] = useState(false);
+  const approvedCount = drugs?.filter((d) => d.approvedForDisease).length ?? 0;
+  const shown = drugs ? (hideApproved ? drugs.filter((d) => !d.approvedForDisease) : drugs) : null;
   return (
     <section className="panel p-5 mb-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="eyebrow t-accent">Start from the disease · Open Targets + patents + literature</div>
-          <h3 className="serif text-[18px] mt-1">Discover candidate drugs for {diseaseName}</h3>
+          <h3 className="serif text-[18px] mt-1">Candidate drugs for {diseaseName}</h3>
         </div>
-        <button
-          onClick={onRun}
-          disabled={loading}
-          className="mono text-[12px] px-4 py-2 rounded-md disabled:opacity-60"
-          style={{ background: loading ? "var(--bg-2)" : "var(--accent-dim)", border: "1px solid var(--accent)", color: "var(--accent)" }}
-        >
-          {loading ? "searching…" : drugs ? "refresh" : "discover drugs"}
-        </button>
+        <div className="flex items-center gap-3">
+          {approvedCount > 0 && (
+            <label className="mono text-[11px] t-muted flex items-center gap-1.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={hideApproved}
+                onChange={(e) => setHideApproved(e.target.checked)}
+                className="accent-current"
+              />
+              hide {approvedCount} already approved for this disease
+            </label>
+          )}
+          {(loading || drugs) && (
+            <button
+              onClick={onRun}
+              disabled={loading}
+              className="mono text-[12px] px-4 py-2 rounded-md disabled:opacity-60"
+              style={{ background: loading ? "var(--bg-2)" : "var(--accent-dim)", border: "1px solid var(--accent)", color: "var(--accent)" }}
+            >
+              {loading ? "searching…" : "refresh"}
+            </button>
+          )}
+        </div>
       </div>
       <p className="text-[11.5px] t-muted mt-2 leading-snug max-w-[86ch]">
-        No target needed. Each drug gets a quick target-free attrition estimate (ranked lowest first);
-        pick one to run its full dashboard. The estimate is a fast screen; the dashboard is the
-        authoritative number.
+        {drugs || loading
+          ? "Each drug gets a quick target-free attrition estimate (ranked lowest first); pick one to run its full dashboard. The estimate is a fast screen; the dashboard is the authoritative number."
+          : "Press Discover drugs above to rank candidate drugs for this disease by target-free attrition estimate, lowest first."}
       </p>
       {error && <p className="mono text-[12px] mt-3" style={{ color: "var(--red)" }}>{error}</p>}
       {drugs && drugs.length === 0 && !loading && (
         <p className="t-muted text-[13px] mt-3">No candidate drugs found for this disease.</p>
       )}
-      {drugs && drugs.length > 0 && (
+      {shown && drugs && drugs.length > 0 && shown.length === 0 && (
+        <p className="t-muted text-[13px] mt-3">
+          All {drugs.length} candidates are already approved for this disease. Uncheck the filter to
+          see them.
+        </p>
+      )}
+      {shown && shown.length > 0 && (
         <div className="mt-4 flex flex-col gap-2">
-          {drugs.map((d) => (
+          {shown.map((d) => (
             <div
               key={`${d.name}-${d.chemblId ?? ""}`}
               className="rounded-md p-3 flex items-start justify-between gap-3"
@@ -489,17 +550,31 @@ function DrugDiscoveryPanel({
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-[14px] font-semibold">{d.name}</span>
-                  <span
-                    className="pill mono uppercase"
-                    style={{
-                      fontSize: 9.5,
-                      color: d.status === "approved" ? "var(--green)" : "var(--amber)",
-                      borderColor: d.status === "approved" ? "var(--green)" : "var(--amber)",
-                      background: d.status === "approved" ? "var(--green-dim)" : "var(--amber-dim)",
-                    }}
-                  >
-                    {d.status}
-                  </span>
+                  {d.approvedForDisease ? (
+                    <span
+                      className="pill mono uppercase"
+                      style={{
+                        fontSize: 9.5,
+                        color: "var(--green)",
+                        borderColor: "var(--green)",
+                        background: "var(--green-dim)",
+                      }}
+                    >
+                      approved · {diseaseName}
+                    </span>
+                  ) : (
+                    <span
+                      className="pill mono uppercase"
+                      style={{
+                        fontSize: 9.5,
+                        color: d.status === "approved" ? "var(--green)" : "var(--amber)",
+                        borderColor: d.status === "approved" ? "var(--green)" : "var(--amber)",
+                        background: d.status === "approved" ? "var(--green-dim)" : "var(--amber-dim)",
+                      }}
+                    >
+                      {d.status}
+                    </span>
+                  )}
                   {d.evidenceSources.map((s) => (
                     <span key={s} className="pill mono t-muted" style={{ fontSize: 9 }}>{s}</span>
                   ))}
@@ -509,10 +584,10 @@ function DrugDiscoveryPanel({
               <div className="flex-none flex items-center gap-3">
                 {typeof d.attrition === "number" && (
                   <div className="text-right">
-                    <div className="mono text-[16px] tabular-nums leading-none" style={{ color: riskColor(d.attrition) }}>
+                    <div className="mono text-[16px] tabular-nums leading-none" style={{ color: d.approvedForDisease ? "var(--green)" : riskColor(d.attrition) }}>
                       {Math.round(d.attrition * 100)}%
                     </div>
-                    <div className="mono t-muted" style={{ fontSize: 8.5 }}>est. attrition</div>
+                    <div className="mono t-muted" style={{ fontSize: 8.5 }}>{d.approvedForDisease ? "approved" : "est. attrition"}</div>
                   </div>
                 )}
                 {d.drug && (

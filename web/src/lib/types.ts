@@ -110,6 +110,22 @@ export interface ModalityFeasibility {
   axes: ModalityAxis[];
 }
 
+// One link in the drug -> target -> disease causal chain, plus what evidence backs it.
+export interface MechanismLink {
+  step: string; // one causal link, e.g. "Drug agonises GLP1R on pancreatic beta cells"
+  support: string; // the evidence: cite [L#] papers / [P#] patents, or "unsupported"
+}
+
+// The likely biological mechanism linking the drug to the disease, with a
+// confidence grade SPECIFIC to that mechanism (low when it cannot be substantiated).
+export interface MechanismOfAction {
+  summary: string; // 1-2 sentence mechanism statement
+  chain: MechanismLink[]; // drug -> target -> pathway -> disease-relevant effect
+  targetsInvolved: string[]; // HGNC symbol(s) the mechanism runs through
+  confidence: "Very low" | "Low" | "Moderate" | "High" | "Very high";
+  confidenceReason: string; // what evidence does / does not support the mechanism
+}
+
 export interface DeriskingStep {
   action: string;
   addresses: string; // which failure mode(s) it kills
@@ -163,6 +179,7 @@ export interface DiscoveredDrug {
   chemblId?: string;
   drug?: Drug; // resolved pg_drugs record (chembl_id/max_phase/molecule_type) when found
   attrition?: number; // cheap target-free attrition estimate (0-1), for ranking
+  approvedForDisease?: boolean; // already approved for THIS disease (or a subtype) => attrition 0
 }
 
 export interface Patent {
@@ -188,4 +205,5 @@ export interface Report {
   bear: string[];
   derisking: DeriskingStep[];
   calibration: Calibration;
+  mechanism?: MechanismOfAction; // optional: absent on authored seeds / stale cache
 }

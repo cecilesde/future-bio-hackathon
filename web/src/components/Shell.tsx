@@ -25,7 +25,7 @@ export default function Shell({
     <>
       <div className="max-w-[1120px] mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between gap-4 pt-6">
-          <div className="mono text-[13px] tracking-[0.35em] t-accent flex-none">PROGNOSIS</div>
+          <div className="mono text-[13px] tracking-[0.35em] t-accent flex-none">ATTRITIO AI</div>
 
           <nav
             className="flex items-center gap-1 p-1 rounded-full"

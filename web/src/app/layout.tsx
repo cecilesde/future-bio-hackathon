@@ -19,9 +19,9 @@ const plexSerif = IBM_Plex_Serif({
 });
 
 export const metadata: Metadata = {
-  title: "Prognosis · reference-class attrition forecasting",
+  title: "Attritio AI · reference-class attrition forecasting",
   description:
-    "Enter a disease, pick a target and modality. Prognosis retrieves the historical programs most mechanistically like yours, shows how they died, and names the cheapest experiment that kills each risk early.",
+    "Enter a disease, pick a target and modality. Attritio AI retrieves the historical programs most mechanistically like yours, shows how they died, and names the cheapest experiment that kills each risk early.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

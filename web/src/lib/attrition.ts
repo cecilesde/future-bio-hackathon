@@ -72,6 +72,7 @@ export interface AttritionScore {
   pos: number; // probability of success 0-1
   components: Component[];
   drivenBy: string; // short plain-language summary of the dominant term
+  approved?: boolean; // true => drug already approved for this indication (hard 0)
 }
 
 function cohortFailFraction(report: Report): number {
@@ -194,13 +195,36 @@ function leadOf(drugs: Drug[]): Drug | null {
   );
 }
 
+// Hard-0 score for a drug already approved for the queried indication. Attrition
+// to approval is 0 by definition (it already reached approval), so this is a fact,
+// not a forecast: the decomposition is replaced by a single explanatory row.
+export function approvedScore(diseaseName: string, lead: Drug | null): AttritionScore {
+  const label = lead ? lead.name.toLowerCase() : "this drug";
+  return {
+    attrition: 0,
+    pos: 1,
+    approved: true,
+    drivenBy: "already approved for this indication",
+    components: [
+      {
+        label: "Approved for this indication",
+        kind: "result",
+        value: 1,
+        input: `${label} is already approved for ${diseaseName}; attrition before approval is 0 by definition`,
+      },
+    ],
+  };
+}
+
 export function computeAttrition(args: {
   report: Report;
   target: TargetAssoc | null;
   drugs: Drug[];
   diseaseName: string;
+  approvedForIndication?: boolean;
 }): AttritionScore {
   const { report, target, drugs, diseaseName } = args;
+  if (args.approvedForIndication) return approvedScore(diseaseName, leadOf(drugs));
   const area = areaOf(diseaseName);
   const lead = leadOf(drugs);
   const phase = phaseOf(lead?.max_phase);
@@ -247,8 +271,10 @@ export function computeAttritionTargetFree(args: {
   efficacyEvidence: number; // 0-1, feeds attritionMath's second term
   efficacyRationale: string;
   efficacyLevel: string;
+  approvedForIndication?: boolean;
 }): AttritionScore {
   const { diseaseName, drug, report, efficacyEvidence, efficacyRationale, efficacyLevel } = args;
+  if (args.approvedForIndication) return approvedScore(diseaseName, drug);
   const area = areaOf(diseaseName);
   const phase = phaseOf(drug.max_phase);
   const mod = clamp(report.modality.overall, 0, 1);

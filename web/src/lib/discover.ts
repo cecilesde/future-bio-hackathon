@@ -12,8 +12,13 @@
 import { extract } from "./llm";
 import { searchPatents } from "./amass";
 import { searchPapers, type ElicitPaper } from "./elicit";
-import { resolveDisease, diseaseDrugCandidates, type DiseaseDrugRow } from "./opentargets";
-import { keyOf, readCache, writeCache } from "./evidence";
+import {
+  resolveDisease,
+  diseaseDrugCandidates,
+  isApprovedForIndication,
+  type DiseaseDrugRow,
+} from "./opentargets";
+import { keyOf, readCache, writeCache, getDrugApprovals, getDiseaseDescendants } from "./evidence";
 import { scoreDrugsTargetFree } from "./forecast";
 import { restQuery } from "./supabase";
 import type { DiscoveredDrug, Drug, Patent } from "./types";
@@ -36,7 +41,8 @@ async function resolveDrug(name: string, chemblId?: string): Promise<Drug | unde
   }
 }
 
-const APPROVED_STAGE = /PHASE_?4/i;
+// OT's approved indication stage string is the literal "APPROVAL" (not "PHASE_4").
+const APPROVED_STAGE = /APPROVAL/i;
 
 interface RawDiscovered {
   name: string;
@@ -60,7 +66,7 @@ function paperLines(papers: ElicitPaper[]): string {
 }
 
 export async function discoverDrugs(diseaseName: string): Promise<DiscoveredDrug[]> {
-  const cacheKey = keyOf("discovery_v4", diseaseName); // v4: per-drug efficacy-based attrition
+  const cacheKey = keyOf("discovery_v5", diseaseName); // v5: approved-for-disease flag + 0 attrition override
   const cached = await readCache<DiscoveredDrug>(cacheKey);
   if (cached) return cached;
 
@@ -130,6 +136,20 @@ export async function discoverDrugs(diseaseName: string): Promise<DiscoveredDrug
     });
   }
 
+  // Approved-for-THIS-disease flag (drug-centric OT indications, subtype-aware).
+  // Distinct from the drug-level `status` (approved for anything). Cached + free.
+  const descendants = efoId ? await getDiseaseDescendants(efoId).catch(() => [] as string[]) : [];
+  if (efoId) {
+    await Promise.all(
+      out.map(async (d) => {
+        const chembl = d.drug?.chembl_id;
+        if (!chembl) return;
+        const approvals = await getDrugApprovals(chembl).catch(() => [] as string[]);
+        d.approvedForDisease = isApprovedForIndication(approvals, efoId, descendants);
+      })
+    );
+  }
+
   // target-free attrition per drug (shared disease cohort + per-drug efficacy grade), for the table
   const scored = await scoreDrugsTargetFree(
     diseaseName,
@@ -138,6 +158,8 @@ export async function discoverDrugs(diseaseName: string): Promise<DiscoveredDrug
   for (const d of out) {
     const key = d.drug?.chembl_id || d.drug?.name;
     if (key && scored.has(key)) d.attrition = scored.get(key)!.attrition;
+    // Already approved for this indication => attrition is 0 by definition.
+    if (d.approvedForDisease) d.attrition = 0;
   }
 
   // rank by attrition ascending (lowest = most promising); undefined last, then
@@ -149,6 +171,6 @@ export async function discoverDrugs(diseaseName: string): Promise<DiscoveredDrug
     return (a.status === "approved" ? 0 : 1) - (b.status === "approved" ? 0 : 1);
   });
 
-  if (out.length) await writeCache(cacheKey, "discovery_v4", diseaseName, out);
+  if (out.length) await writeCache(cacheKey, "discovery_v5", diseaseName, out);
   return out;
 }

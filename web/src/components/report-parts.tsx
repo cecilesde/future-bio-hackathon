@@ -2,6 +2,7 @@ import type {
   Report,
   FailureMode,
   ModalityFeasibility,
+  MechanismOfAction,
   DeriskingStep,
   Calibration,
   Signal,
@@ -26,9 +27,52 @@ function confColor(c: Report["confidence"]): string {
   return c === "High" ? "var(--green)" : c === "Moderate" ? "var(--amber)" : "var(--red)";
 }
 
+// Five-level mechanism confidence -> colour gradient (green -> amber -> red).
+function mechColor(c: MechanismOfAction["confidence"]): string {
+  return c === "Very high" || c === "High"
+    ? "var(--green)"
+    : c === "Moderate"
+      ? "var(--amber)"
+      : "var(--red)";
+}
+
 /* ------------------------------------------------------------------ verdict */
-export function VerdictBand({ report, attrition }: { report: Report; attrition: number }) {
-  const c = riskColor(attrition);
+export function VerdictBand({
+  report,
+  attrition,
+  approved = false,
+}: {
+  report: Report;
+  attrition: number;
+  approved?: boolean;
+}) {
+  const c = approved ? "var(--green)" : riskColor(attrition);
+  if (approved) {
+    return (
+      <section className="panel p-5 sm:p-6 rise">
+        <div className="grid gap-6 md:grid-cols-[auto_1fr] md:items-center">
+          <div>
+            <div className="eyebrow">Attrition risk</div>
+            <div className="serif leading-none mt-2" style={{ fontSize: 64, color: c }}>
+              0%
+            </div>
+            <span
+              className="pill mono uppercase mt-3 inline-block"
+              style={{ color: c, borderColor: c }}
+            >
+              Approved for this indication
+            </span>
+          </div>
+          <div className="md:pl-6 md:border-l" style={{ borderColor: "var(--line-2)" }}>
+            <p className="serif text-[19px] leading-snug t-dim">
+              This drug is already approved for this indication, so its probability of failing before
+              approval is 0. The forecast below (mechanism, cohort, patents) is shown for context.
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
   return (
     <section className="panel p-5 sm:p-6 rise">
       <div className="grid gap-6 md:grid-cols-[auto_1fr] md:items-center">
@@ -74,6 +118,29 @@ export function VerdictBand({ report, attrition }: { report: Report; attrition: 
 
 /* ------------------------------------------------------ attrition composition */
 export function AttritionComposition({ score }: { score: AttritionScore }) {
+  if (score.approved) {
+    return (
+      <section className="panel p-5 rise">
+        <div className="flex items-baseline justify-between gap-3 mb-2">
+          <div>
+            <div className="eyebrow">Attrition composition</div>
+            <h3 className="serif text-[20px] mt-1">Approved for this indication</h3>
+          </div>
+          <div className="text-right flex-none">
+            <div className="serif text-[30px] leading-none" style={{ color: "var(--green)" }}>
+              0%
+            </div>
+            <div className="mono text-[10px] t-muted mt-0.5">already approved</div>
+          </div>
+        </div>
+        <p className="text-[13px] t-dim max-w-[82ch] leading-snug">
+          {score.components[0]?.input ??
+            "This drug is already approved for this indication, so attrition before approval is 0 by definition."}{" "}
+          The reference-class decomposition does not apply.
+        </p>
+      </section>
+    );
+  }
   return (
     <section className="panel p-5 rise">
       <div className="flex items-baseline justify-between gap-3 mb-1">
@@ -329,6 +396,62 @@ function VoiBadge({ voi }: { voi: DeriskingStep["voi"] }) {
     <span className="pill mb-1 md:self-end" style={{ borderColor: color, color }}>
       {voi} VOI
     </span>
+  );
+}
+
+/* ------------------------------------------------------- mechanism of action */
+export function MechanismPanel({ mechanism }: { mechanism?: MechanismOfAction }) {
+  if (!mechanism) return null;
+  const color = mechColor(mechanism.confidence);
+  return (
+    <section>
+      <SectionHead
+        n="00"
+        title="Mechanism of action"
+        sub="The likely biological chain linking the drug to the disease, reconstructed from the literature and patent landscape. The confidence grade reflects how well the evidence substantiates this specific mechanism, not the overall forecast."
+      />
+      <div className="panel p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
+          <div className="min-w-0">
+            <div className="eyebrow">Proposed mechanism</div>
+            <p className="serif text-[16px] t-dim leading-snug mt-1">{mechanism.summary}</p>
+          </div>
+          <span
+            className="pill mono uppercase shrink-0"
+            style={{ color, borderColor: color }}
+          >
+            {mechanism.confidence} confidence
+          </span>
+        </div>
+
+        {mechanism.targetsInvolved.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            <span className="eyebrow">Targets</span>
+            {mechanism.targetsInvolved.map((t) => (
+              <span key={t} className="pill mono">
+                {t}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {mechanism.chain.length > 0 && (
+          <ol className="grid gap-3 mb-4">
+            {mechanism.chain.map((link, i) => (
+              <li key={i} className="grid grid-cols-[24px_1fr] gap-x-3 items-start">
+                <span className="mono text-[12px] tabular-nums t-muted mt-[2px]">{i + 1}</span>
+                <div>
+                  <div className="text-[13.5px] leading-snug">{link.step}</div>
+                  <div className="text-[12px] t-muted leading-snug mt-0.5">{link.support}</div>
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
+
+        <p className="text-[12px] t-muted leading-snug">{mechanism.confidenceReason}</p>
+      </div>
+    </section>
   );
 }
 
