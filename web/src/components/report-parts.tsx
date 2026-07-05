@@ -124,7 +124,9 @@ export function VerdictBand({
           <div className="flex flex-col justify-center gap-3">
             <div>
               <div className="eyebrow">Most likely time of failure</div>
-              <div className="serif text-[26px] leading-none mt-1">{report.exitPhase}</div>
+              <div className="serif text-[26px] leading-none mt-1 t-dim">
+                {attrition < 0.1 ? "–" : report.exitPhase}
+              </div>
             </div>
             <div>
               <div className="eyebrow">Confidence</div>

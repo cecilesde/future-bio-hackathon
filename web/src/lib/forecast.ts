@@ -601,7 +601,7 @@ async function judge(
     additionalProperties: false,
     required: ["verdict", "confidenceReason", "exitPhase", "bull", "bear"],
     properties: {
-      verdict: { type: "string", description: "one or two sentences: the crux — what this program lives or dies on" },
+      verdict: { type: "string", description: "one or two sentences stating the program's outlook, following the verdict-framing instruction provided" },
       confidenceReason: { type: "string", description: "one or two sentences justifying the GIVEN confidence grade, grounded in evidence density: decided-cohort size, its consistency, validation strength, and the drug's phase" },
       exitPhase: { type: "string", enum: ["Preclinical", "Phase 1", "Phase 2", "Phase 3", "Filed", "Approved"] },
       bull: { type: "array", items: { type: "string" }, description: "3-4 strongest points to advance" },
@@ -622,6 +622,21 @@ async function judge(
     leadMaxPhase,
   });
 
+  // Literature line. A 0-paper result is almost always a live retrieval outage
+  // (the semantic-search provider is rate-limited to 100 req/24h and 429s), NOT
+  // evidence that the literature is thin. Saying "0 papers" made the verdict prose
+  // call the literature "absent" while the (separately graded, cached) efficacy term
+  // cited multiple meta-analyses. So when nothing came back this run, tell the LLM
+  // it is a retrieval gap and forbid the "literature absent" framing.
+  const litLine =
+    papersCount > 0
+      ? `Literature retrieved: ${papersCount} papers.`
+      : `Literature: none re-fetched this run (the semantic-search provider was rate-limited/unavailable). Treat this as a retrieval gap, NOT as evidence that the supporting literature is thin or absent. Do not describe the literature as missing or absent; if the efficacy evidence above is graded moderate or strong, the supporting literature is established and simply was not re-pulled here.`;
+
+  // Below this attrition, "what it lives or dies on" is the wrong frame: the program
+  // is substantially de-risked and the verdict should say so, naming only residual risk.
+  const lowAttrition = score.attrition < 0.1;
+
   const evidence = [
     `Computed attrition risk: ${Math.round(score.attrition * 100)}% (probability of failure before approval).`,
     `Dominant driver of the score: ${score.drivenBy}.`,
@@ -629,15 +644,19 @@ async function judge(
     input.subject
       ? `Drug efficacy evidence in this disease: ${efficacyLevel ?? "none"} (${association.toFixed(2)}).`
       : `Open Targets association: ${associationFound ? association.toFixed(2) : "no association row (neutral prior used)"}.`,
-    `Literature retrieved: ${papersCount} papers.`,
+    litLine,
     `Patents retrieved: ${patentsCount} (AMASS patentcore).`,
     `Confidence grade (computed deterministically from evidence density): ${confidence}.`,
   ].join("\n");
 
+  const verdictGuidance = lowAttrition
+    ? "This is a LOW-attrition (substantially de-risked) program. Do NOT use a 'lives or dies' or make-or-break framing. Write the verdict as a plain statement that the program is largely de-risked, naming only the residual risk that remains (e.g. late-stage execution, labeling, commercial), in a measured tone."
+    : "Write the crux verdict: the one thing this program most lives or dies on.";
+
   const system =
-    "You are the lead forecaster writing the verdict for a drug-program attrition report. You are given the already-computed attrition number, the evidence it was built from, and a confidence grade that has ALREADY been computed deterministically from evidence density. Write the crux verdict (what the program lives or dies on), a one-to-two sentence explanation that HONESTLY justifies the GIVEN confidence grade (cite the decided-cohort size and its consistency, the validation/efficacy strength, and the drug's phase; state the caveats openly, e.g. a thin or mixed cohort, or absent literature). Do NOT assign or change the confidence grade yourself, and do not restate or alter the attrition number. Also name the most likely phase of failure and give the proposer (advance) and skeptic (kill) cases; try to falsify the bull case in the bear case. " +
+    "You are the lead forecaster writing the verdict for a drug-program attrition report. You are given the already-computed attrition number, the evidence it was built from, and a confidence grade that has ALREADY been computed deterministically from evidence density. Write the verdict per the framing instruction given, plus a one-to-two sentence explanation that HONESTLY justifies the GIVEN confidence grade (cite the decided-cohort size and its consistency, the validation/efficacy strength, and the drug's phase; state real caveats openly, e.g. a thin or mixed cohort). Never call the literature 'absent' or 'missing' merely because none was re-fetched this run. Do NOT assign or change the confidence grade yourself, and do not restate or alter the attrition number. Also name the most likely phase of failure and give the proposer (advance) and skeptic (kill) cases; try to falsify the bull case in the bear case. " +
     STYLE;
-  const user = `Subject: ${subjectHead(input)} in ${input.diseaseName}.\n\nEvidence:\n${evidence}\n\nDecomposition terms:\n${score.components.map((c) => `- ${c.label}: ${c.kind === "factor" ? `x${c.value.toFixed(2)}` : `${Math.round(c.value * 100)}%`}`).join("\n")}\n\nWrite the verdict, a justification for the ${confidence} confidence grade, the most-likely exit phase, and the proposer/skeptic cases.`;
+  const user = `Subject: ${subjectHead(input)} in ${input.diseaseName}.\n\nVerdict framing: ${verdictGuidance}\n\nEvidence:\n${evidence}\n\nDecomposition terms:\n${score.components.map((c) => `- ${c.label}: ${c.kind === "factor" ? `x${c.value.toFixed(2)}` : `${Math.round(c.value * 100)}%`}`).join("\n")}\n\nWrite the verdict, a justification for the ${confidence} confidence grade, the most-likely exit phase, and the proposer/skeptic cases.`;
 
   const data = await extract<Omit<Judgement, "confidence">>(system, user, schema, { effort: "high", maxTokens: 2500 });
   return {
