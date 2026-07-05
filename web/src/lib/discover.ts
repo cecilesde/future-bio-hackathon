@@ -19,7 +19,8 @@ import {
   type DiseaseDrugRow,
 } from "./opentargets";
 import { keyOf, readCache, writeCache, getDrugApprovals, getDiseaseDescendants } from "./evidence";
-import { scoreDrugsTargetFree } from "./forecast";
+import { generateForecastTargetFree } from "./forecast";
+import { forecastCacheKey, drugKeyOf, readForecastCache, writeForecastCache } from "./forecast-cache";
 import { restQuery } from "./supabase";
 import type { DiscoveredDrug, Drug, Patent } from "./types";
 
@@ -66,6 +67,23 @@ function rankOtDrugs(rows: DiseaseDrugRow[]): DiseaseDrugRow[] {
       (OT_STAGE_RANK[(a.maxClinicalStage ?? "").toUpperCase()] ?? 0)
   );
 }
+
+// For BACKFILL we want the NON-approved clinical-stage drugs first (Phase 3 > 2 > 1),
+// because those are the new-discovery candidates. Approved-for-this-disease drugs are
+// already well covered by the LLM (the standard of care), and piling on obscure
+// approved entries (zimeldine, glaziovine...) just crowds out the experimental ones
+// and leaves nothing after the "hide approved" filter.
+const OT_BACKFILL_RANK: Record<string, number> = {
+  PHASE_3: 6, PHASE3: 6, PHASE_2: 5, PHASE2: 5, PHASE_1: 4, PHASE1: 4, EARLY_PHASE_1: 3,
+  APPROVAL: 2, PHASE_4: 2, PHASE4: 2, PRECLINICAL: 1,
+};
+function rankOtForBackfill(rows: DiseaseDrugRow[]): DiseaseDrugRow[] {
+  return [...rows].sort(
+    (a, b) =>
+      (OT_BACKFILL_RANK[(b.maxClinicalStage ?? "").toUpperCase()] ?? 0) -
+      (OT_BACKFILL_RANK[(a.maxClinicalStage ?? "").toUpperCase()] ?? 0)
+  );
+}
 function otLines(rows: DiseaseDrugRow[]): string {
   return rankOtDrugs(rows)
     .slice(0, 120)
@@ -81,7 +99,7 @@ function paperLines(papers: ElicitPaper[]): string {
 }
 
 export async function discoverDrugs(diseaseName: string): Promise<DiscoveredDrug[]> {
-  const cacheKey = keyOf("discovery_v8", diseaseName); // v8: deeper pool (~40) for new-discovery after hide-approved
+  const cacheKey = keyOf("discovery_v11", diseaseName); // v11: experimental-first backfill + real cached forecast per non-approved (matches click)
   const cached = await readCache<DiscoveredDrug>(cacheKey);
   if (cached) return cached;
 
@@ -162,7 +180,7 @@ export async function discoverDrugs(diseaseName: string): Promise<DiscoveredDrug
   // still a deep pool of experimental candidates for new-discovery.
   const TARGET_MIN = 40;
   if (out.length < TARGET_MIN && otDrugs.length) {
-    for (const r of rankOtDrugs(otDrugs)) {
+    for (const r of rankOtForBackfill(otDrugs)) {
       if (out.length >= TARGET_MIN) break;
       const key = r.name.trim().toLowerCase();
       if (!key || seen.has(key)) continue;
@@ -196,17 +214,51 @@ export async function discoverDrugs(diseaseName: string): Promise<DiscoveredDrug
     );
   }
 
-  // target-free attrition per drug (shared disease cohort + per-drug efficacy grade), for the table
-  const scored = await scoreDrugsTargetFree(
-    diseaseName,
-    out.map((d) => d.drug).filter((d): d is Drug => !!d)
-  ).catch(() => new Map<string, { attrition: number }>());
-  for (const d of out) {
-    const key = d.drug?.chembl_id || d.drug?.name;
-    if (key && scored.has(key)) d.attrition = scored.get(key)!.attrition;
-    // Already approved for this indication => attrition is 0 by definition.
-    if (d.approvedForDisease) d.attrition = 0;
+  // Run the AUTHORITATIVE forecast for each candidate up front and cache it, so the
+  // ranked-table number is EXACTLY the number clicking "forecast" shows. The full
+  // forecast has nondeterministic LLM steps (cohort curation, modality, judge), so a
+  // cheap re-derivation would diverge on click. Instead we compute the real forecast
+  // once and share its cached result with the click via forecast_cache (the same key
+  // the /api/forecast-by-drug route reads). Bounded concurrency; each result cached,
+  // so this is a one-time cost per (disease, drug).
+  const CONCURRENCY = 5;
+  const MAX_FORECASTS = 24; // bound the real-forecast work so no disease times out
+  let cursor = 0;
+  let forecasted = 0;
+  async function warmOne(): Promise<void> {
+    while (cursor < out.length) {
+      const d = out[cursor++];
+      // Approved for THIS indication => attrition 0 by definition. The click returns
+      // 0 for these too (approvedForIndication short-circuit), so the table matches
+      // WITHOUT running a forecast. Skipping them is what keeps this fast: only the
+      // non-approved candidates (the ones that matter for new-discovery, and the ones
+      // a user would click) get a real forecast.
+      if (d.approvedForDisease) {
+        d.attrition = 0;
+        continue;
+      }
+      if (!d.drug) continue;
+      // Cap the number of real forecasts so a disease with many experimental
+      // candidates cannot exceed the request budget. Over-cap ones keep an undefined
+      // estimate (sorted last); clicking one still computes + caches it on demand.
+      if (forecasted >= MAX_FORECASTS) continue;
+      forecasted++;
+      const drugKey = drugKeyOf([d.drug]);
+      const fkey = forecastCacheKey(diseaseName, "_DRUGFREE_", drugKey);
+      try {
+        let hit = await readForecastCache(fkey);
+        if (!hit) {
+          const result = await generateForecastTargetFree(diseaseName, d.drug);
+          await writeForecastCache(fkey, diseaseName, "_DRUGFREE_", drugKey, result);
+          hit = result;
+        }
+        d.attrition = hit.score.attrition;
+      } catch {
+        /* leave attrition undefined -> sorts last */
+      }
+    }
   }
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, out.length) }, warmOne));
 
   // rank by attrition ascending (lowest = most promising); undefined last, then
   // approved-first as a tiebreak
@@ -217,6 +269,6 @@ export async function discoverDrugs(diseaseName: string): Promise<DiscoveredDrug
     return (a.status === "approved" ? 0 : 1) - (b.status === "approved" ? 0 : 1);
   });
 
-  if (out.length) await writeCache(cacheKey, "discovery_v8", diseaseName, out);
+  if (out.length) await writeCache(cacheKey, "discovery_v11", diseaseName, out);
   return out;
 }
