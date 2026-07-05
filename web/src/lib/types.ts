@@ -225,3 +225,13 @@ export interface Report {
     label: string;
   };
 }
+
+// A shared researcher note attached to a (disease, drug) query. Append-only; author
+// is optional and unverified (no login). Body is markdown. Client-safe shape.
+export interface Note {
+  author: string | null;
+  body: string;
+  created_at: string;
+}
+export const MAX_NOTE_BODY = 5000;
+export const MAX_NOTE_AUTHOR = 80;

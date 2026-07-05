@@ -20,6 +20,9 @@ import {
   PatentsPanel,
 } from "./report-parts";
 import { computeAttrition, type AttritionScore } from "@/lib/attrition";
+import NotesPanel from "./NotesPanel";
+
+type NoteContext = { diseaseId: string | null; diseaseName: string; drug: Drug };
 
 function riskColor(x: number): string {
   if (x >= 0.66) return "var(--red)";
@@ -333,6 +336,11 @@ export default function Prognosis({
             patents={liveForCurrent.patents}
             live
             keyId={`live:${subjectKey}`}
+            noteContext={
+              drugs[0]
+                ? { diseaseId: liveForCurrent.provenance.efoId, diseaseName, drug: drugs[0] }
+                : undefined
+            }
           />
         </>
       ) : tfForCurrent ? (
@@ -358,6 +366,7 @@ function ReportView({
   patents = [],
   live,
   keyId,
+  noteContext,
 }: {
   report: Report;
   score: AttritionScore;
@@ -365,6 +374,7 @@ function ReportView({
   patents?: Patent[];
   live: boolean;
   keyId: string;
+  noteContext?: NoteContext;
 }) {
   return (
     <div className="flex flex-col gap-10 pb-16" key={keyId}>
@@ -393,6 +403,7 @@ function ReportView({
       <ModalityPanel modality={report.modality} />
       <Adversarial bull={report.bull} bear={report.bear} />
       <Derisking steps={report.derisking} />
+      {noteContext?.drug && <NotesPanel {...noteContext} />}
       <LiteraturePanel papers={papers} />
       <PatentsPanel patents={patents} />
       {!live && <CalibrationPanel cal={report.calibration} />}
