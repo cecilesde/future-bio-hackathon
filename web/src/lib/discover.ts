@@ -66,7 +66,7 @@ function paperLines(papers: ElicitPaper[]): string {
 }
 
 export async function discoverDrugs(diseaseName: string): Promise<DiscoveredDrug[]> {
-  const cacheKey = keyOf("discovery_v5", diseaseName); // v5: approved-for-disease flag + 0 attrition override
+  const cacheKey = keyOf("discovery_v6", diseaseName); // v6: approved-for-disease via dbXRef ontology bridge
   const cached = await readCache<DiscoveredDrug>(cacheKey);
   if (cached) return cached;
 
@@ -171,6 +171,6 @@ export async function discoverDrugs(diseaseName: string): Promise<DiscoveredDrug
     return (a.status === "approved" ? 0 : 1) - (b.status === "approved" ? 0 : 1);
   });
 
-  if (out.length) await writeCache(cacheKey, "discovery_v5", diseaseName, out);
+  if (out.length) await writeCache(cacheKey, "discovery_v6", diseaseName, out);
   return out;
 }

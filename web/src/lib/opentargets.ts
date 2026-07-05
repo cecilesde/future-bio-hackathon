@@ -271,21 +271,32 @@ export async function drugApprovalIndications(chemblId: string): Promise<string[
 // Descendant EFO/MONDO ids of a disease (subtypes). Used so a drug approved for a
 // subtype (e.g. major depressive disorder) counts as approved for a broader query
 // (depression). [] on error / leaf disease.
+// Ids that count as "the same disease as efoId" for an approval match: the
+// disease's subtypes (descendants) PLUS its cross-ontology equivalents (dbXRefs).
+// The latter matters because the disease search resolves a name to one ontology
+// node (usually MONDO/EFO) while a drug's approval indication is often filed under
+// a DIFFERENT ontology node for the same concept. Example: "Obesity" resolves to
+// MONDO_0011122 ("obesity disorder"), but semaglutide's obesity APPROVAL is filed
+// under HP_0001513 ("Obesity"); MONDO_0011122.dbXRefs includes HP:0001513, so
+// including the normalized xrefs bridges the two. dbXRefs use "PREFIX:id"; OT ids
+// use "PREFIX_id", so normalize the first colon to an underscore.
 export async function diseaseDescendants(efoId: string): Promise<string[]> {
-  const q = `query($e:String!){ disease(efoId:$e){ descendants } }`;
+  const q = `query($e:String!){ disease(efoId:$e){ descendants dbXRefs } }`;
   try {
-    const d = await post<{ disease: { descendants: string[] | null } | null }>(q, { e: efoId });
-    return d.disease?.descendants ?? [];
+    const d = await post<{ disease: { descendants: string[] | null; dbXRefs: string[] | null } | null }>(q, { e: efoId });
+    const descendants = d.disease?.descendants ?? [];
+    const xrefs = (d.disease?.dbXRefs ?? []).map((x) => x.replace(":", "_"));
+    return [...new Set([...descendants, ...xrefs])];
   } catch {
     return [];
   }
 }
 
-// True if the drug is approved for the queried disease OR one of its subtypes
-// (descendants). Ancestor approvals do NOT count (approval for a broad parent does
-// not imply approval for a narrow subtype).
-export function isApprovedForIndication(approvedIds: string[], efoId: string, descendants: string[]): boolean {
+// True if the drug is approved for the queried disease OR one of its subtypes /
+// cross-ontology equivalents (see diseaseDescendants). Ancestor approvals do NOT
+// count (approval for a broad parent does not imply approval for a narrow subtype).
+export function isApprovedForIndication(approvedIds: string[], efoId: string, related: string[]): boolean {
   if (!approvedIds.length || !efoId) return false;
-  const targetSet = new Set([efoId, ...descendants]);
+  const targetSet = new Set([efoId, ...related]);
   return approvedIds.some((id) => targetSet.has(id));
 }

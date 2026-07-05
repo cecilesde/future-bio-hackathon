@@ -98,11 +98,13 @@ export async function getDrugApprovals(chemblId: string): Promise<string[]> {
 export async function getDiseaseDescendants(efoId: string): Promise<string[]> {
   const ref = efoId.trim();
   if (!ref) return [];
-  const cacheKey = keyOf("disease_descendants", ref);
+  // v2: now includes cross-ontology equivalents (dbXRefs), not just descendants.
+  const kind = "disease_descendants_v2";
+  const cacheKey = keyOf(kind, ref);
   const cached = await readCache<string>(cacheKey);
   if (cached) return cached;
 
   const ids = await diseaseDescendants(ref).catch(() => [] as string[]);
-  if (ids.length) await writeCache(cacheKey, "disease_descendants", ref, ids);
+  if (ids.length) await writeCache(cacheKey, kind, ref, ids);
   return ids;
 }

@@ -7,7 +7,7 @@ import type { Drug } from "./types";
 import type { ForecastResult } from "./forecast";
 
 // Bump when the cached report shape changes so old rows miss and regenerate.
-export const SCHEMA_VERSION = "v12"; // v12: re-fetch trials with richer AMASS fields (drug_trials_v2)
+export const SCHEMA_VERSION = "v13"; // v13: approved-for-indication ontology xref bridge
 
 export function drugKeyOf(drugs: Drug[]): string {
   return drugs
