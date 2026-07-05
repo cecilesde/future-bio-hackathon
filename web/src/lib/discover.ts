@@ -51,9 +51,24 @@ interface RawDiscovered {
   evidenceSources: string[];
 }
 
+// OT returns disease-drugs in no useful order (roughly alphabetical), so an
+// unranked slice is dominated by off-label/adjunct noise (e.g. depression's list
+// begins ACETAMINOPHEN, AIR MEDICAL, ALTEPLASE, AMLODIPINE, ASPIRIN...). Rank by
+// clinical stage so the most-developed real drugs lead.
+const OT_STAGE_RANK: Record<string, number> = {
+  APPROVAL: 6, PHASE_4: 6, PHASE4: 6, PHASE_3: 5, PHASE3: 5, PHASE_2: 4, PHASE2: 4,
+  PHASE_1: 3, PHASE1: 3, EARLY_PHASE_1: 2, PRECLINICAL: 1,
+};
+function rankOtDrugs(rows: DiseaseDrugRow[]): DiseaseDrugRow[] {
+  return [...rows].sort(
+    (a, b) =>
+      (OT_STAGE_RANK[(b.maxClinicalStage ?? "").toUpperCase()] ?? 0) -
+      (OT_STAGE_RANK[(a.maxClinicalStage ?? "").toUpperCase()] ?? 0)
+  );
+}
 function otLines(rows: DiseaseDrugRow[]): string {
-  return rows
-    .slice(0, 40)
+  return rankOtDrugs(rows)
+    .slice(0, 80)
     .map((r) => `- ${r.name} (${r.drugType ?? "?"}, ${r.maxClinicalStage ?? "?"})`)
     .join("\n");
 }
@@ -66,7 +81,7 @@ function paperLines(papers: ElicitPaper[]): string {
 }
 
 export async function discoverDrugs(diseaseName: string): Promise<DiscoveredDrug[]> {
-  const cacheKey = keyOf("discovery_v6", diseaseName); // v6: approved-for-disease via dbXRef ontology bridge
+  const cacheKey = keyOf("discovery_v7", diseaseName); // v7: stage-ranked OT input + safety-net backfill
   const cached = await readCache<DiscoveredDrug>(cacheKey);
   if (cached) return cached;
 
@@ -108,12 +123,12 @@ export async function discoverDrugs(diseaseName: string): Promise<DiscoveredDrug
   };
 
   const system =
-    "You are a drug-discovery analyst. From the provided evidence (an Open Targets list of drugs in clinical development or approved for a disease, a set of patents, and literature abstracts), produce a de-duplicated list of candidate DRUGS with reported or plausible efficacy for the disease. Include BOTH approved and experimental/clinical drugs. Use only named drugs (INN/common names), not compound codes or chemical structures. For each, give a one-sentence efficacy rationale and tag which sources support it. Prefer the Open Targets entries (they are the most reliable) and add named drugs from patents/literature that are not already in that list. Do not invent drugs. Return up to 20, most established first. Do not use em-dashes.";
+    "You are a drug-discovery analyst. From the provided evidence (an Open Targets list of drugs in clinical development or approved for a disease, a set of patents, and literature abstracts), produce a de-duplicated list of candidate DRUGS with reported or plausible efficacy for the disease. Include BOTH approved and experimental/clinical drugs. Use only named drugs (INN/common names), not compound codes or chemical structures. For each, give a one-sentence efficacy rationale and tag which sources support it. Prefer the Open Targets entries (they are the most reliable) and add named drugs from patents/literature that are not already in that list. The Open Targets list may include off-label or adjunct entries; keep the ones plausibly used or studied FOR this disease and skip clearly unrelated ones, but do NOT be overly restrictive: aim for a broad, useful shortlist. Do not invent drugs. Return 12 to 20 drugs (fewer only if the evidence genuinely supports fewer), most established first. Do not use em-dashes.";
   const user = `Disease: ${diseaseName}\n\nOpen Targets drugs (approved + clinical for this disease):\n${
     otDrugs.length ? otLines(otDrugs) : "(none)"
   }\n\nPatents (AMASS):\n${patentLines(patents)}\n\nLiterature (Elicit):\n${paperLines(papers)}\n\nProduce the candidate drug list.`;
 
-  const data = await extract<{ drugs: RawDiscovered[] }>(system, user, schema, { effort: "low", maxTokens: 3500 });
+  const data = await extract<{ drugs: RawDiscovered[] }>(system, user, schema, { effort: "medium", maxTokens: 3500 });
 
   const otByName = new Map(otDrugs.map((r) => [r.name.toLowerCase(), r]));
   const seen = new Set<string>();
@@ -134,6 +149,35 @@ export async function discoverDrugs(diseaseName: string): Promise<DiscoveredDrug
       chemblId: drug?.chembl_id ?? ot?.chemblId ?? undefined,
       drug,
     });
+  }
+
+  // Safety-net backfill from the OT backbone. The LLM sometimes returns very few
+  // candidates from a noisy OT list (e.g. depression's list is dominated by
+  // off-label/adjunct entries and the model over-filters). OT disease-drugs are the
+  // reliable backbone (real ChEMBL ids, each linked to THIS disease), so top up from
+  // the highest-staged OT drugs not already present until the table is usable. Only
+  // include drugs that resolve to a real pg_drugs record (this also drops OT names
+  // outside our ChEMBL universe). Also makes discovery robust to an Elicit outage.
+  const TARGET_MIN = 15;
+  if (out.length < TARGET_MIN && otDrugs.length) {
+    for (const r of rankOtDrugs(otDrugs)) {
+      if (out.length >= TARGET_MIN) break;
+      const key = r.name.trim().toLowerCase();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      const drug = await resolveDrug(r.name, r.chemblId ?? undefined);
+      if (!drug) continue;
+      const approved =
+        (drug.max_phase ?? 0) >= 4 || (r.maxClinicalStage ? APPROVED_STAGE.test(r.maxClinicalStage) : false);
+      out.push({
+        name: drug.name,
+        status: approved ? "approved" : "experimental",
+        rationale: `In clinical development or approved with trials recorded for ${diseaseName} (Open Targets).`,
+        evidenceSources: ["Open Targets"],
+        chemblId: drug.chembl_id ?? r.chemblId ?? undefined,
+        drug,
+      });
+    }
   }
 
   // Approved-for-THIS-disease flag (drug-centric OT indications, subtype-aware).
@@ -171,6 +215,6 @@ export async function discoverDrugs(diseaseName: string): Promise<DiscoveredDrug
     return (a.status === "approved" ? 0 : 1) - (b.status === "approved" ? 0 : 1);
   });
 
-  if (out.length) await writeCache(cacheKey, "discovery_v6", diseaseName, out);
+  if (out.length) await writeCache(cacheKey, "discovery_v7", diseaseName, out);
   return out;
 }
