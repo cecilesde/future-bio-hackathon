@@ -550,7 +550,7 @@ function DrugDiscoveryPanel({
       </div>
       <p className="text-[11.5px] t-muted mt-2 leading-snug max-w-[86ch]">
         {drugs || loading
-          ? "Each drug gets a quick target-free attrition estimate (ranked lowest first); pick one to run its full dashboard. The estimate is a fast screen; the dashboard is the authoritative number."
+          ? "Each drug's attrition is its full target-free forecast, ranked lowest first (drugs already approved for this indication are 0% by definition). The number shown is exactly what opens when you click a drug; the dashboard just adds the decomposition, cohort, and narrative."
           : "Press Discover drugs above to rank candidate drugs for this disease by target-free attrition estimate, lowest first."}
       </p>
       {error && <p className="mono text-[12px] mt-3" style={{ color: "var(--red)" }}>{error}</p>}
