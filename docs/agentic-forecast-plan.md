@@ -8,6 +8,12 @@ Output Rationale, De-risking Opportunities, and the Mathematical Decomposition o
 This doc separates **FACT** (current state, read from the code) from **PROPOSAL** (design to
 debate). Read Part A before Part C.
 
+> **NOTE (2026-07-05):** this is a design/history doc; Parts A-F are the original plan and are now
+> partly superseded. For the CURRENT architecture, read the repo-root **`CLAUDE.md`** (single source
+> of truth). **Part H** at the bottom records what shipped after Part G (target-free lens, disease-only
+> discovery, unified Compute button, mechanism-of-action box, approved-for-indication 0% override, and
+> the rename to **Attritio AI**). AMASS is back in credits (Part A6's "out of credits" is stale).
+
 ---
 
 ## Part A — Current backend infrastructure (FACT)
@@ -384,3 +390,32 @@ empty OT cohort handled honestly (Low confidence, 91%), which motivated Part F.
 
 **Not yet built:** Part F (runtime AMASS accretion, credit-gated), D2 frozen-cache promotion, D4
 coefficient fitting, patents/directionality.
+
+## Part H: Shipped since Part G (2026-07-05, live in production)
+
+The full current architecture is in the repo-root `CLAUDE.md`; this is a delta summary.
+
+- **Second forecast lens, target-free (disease + drug, no target).** `generateForecastTargetFree` →
+  `/api/forecast-by-drug`. Cohort is the DISEASE's programs (`diseaseCohortCandidates`); the
+  validation term is the drug's own **efficacy evidence** (LLM-graded, cached in `pg_evidence`)
+  instead of a target's genetics. `computeAttritionTargetFree` in `attrition.ts`.
+- **Disease-only discovery.** `discoverDrugs(disease)` → `/api/discover-drugs` mines OT disease-drugs
+  + AMASS patents + Elicit literature into a ranked candidate-drug table, each scored target-free
+  (`scoreDrugsTargetFree`, per-drug efficacy grade). Cached as `pg_evidence` kind `discovery_v5`.
+- **Unified Compute button.** One action in `Prognosis.tsx` (`runCompute`) dispatches by a derived
+  `computeMode` (discovery / target / target-free). Disease input now accepts free text.
+- **Mechanism-of-action box.** `mechanismLinkage` (Stage 2b, parallel with modality) reconstructs
+  drug → target → disease from the already-fetched literature + patents, with a 5-level confidence
+  grade specific to the mechanism. `report.mechanism`; rendered by `MechanismPanel`.
+- **Approved-for-indication → 0% attrition:** a deterministic hard override. From live OT
+  `drug.indications` (stage string `"APPROVAL"`) matched to the queried EFO or a descendant subtype
+  (`disease.descendants`); `approvedScore()` short-circuits both adapters and `AttritionScore.approved`
+  drives an "Approved for this indication" UI state. Discovery pins approved-for-disease drugs to 0
+  and offers a "hide approved" filter. New OT helpers `drugApprovalIndications` / `diseaseDescendants`
+  / `isApprovedForIndication`, cached as `pg_evidence` kinds `drug_approvals` / `disease_descendants`.
+  This fixed a latent bug: a dead `/PHASE_?4/` regex never matched OT's `"APPROVAL"` string.
+- **Removed:** the "target tournament" (auto-picked a drug's best target by lowest attrition); it
+  favoured under-studied targets and was replaced by the target-free lens. Do not reintroduce.
+- **Rename:** product is now **Attritio AI** (user-visible strings only; Vercel project, alias, and
+  the `Prognosis.tsx` component keep the old names).
+- `forecast_cache` `SCHEMA_VERSION` is now **v7**.

@@ -1,35 +1,49 @@
-# Prognosis
+# Attritio AI
 
-Reference-class forecasting for drug-program attrition. Pick a disease, see the
-targets Open Targets associates with it, pick one, and get a forecast built from
-the historical programs most mechanistically like it: how they died, each
-failure mode, and the cheapest experiment that resolves it early. A second tab
-maps the AMASS clinical-trial landscape by disease.
+Reference-class forecasting for drug-program attrition. Give it a disease + a drug
+(and optionally a target) and it computes how likely the program is to fail before
+approval, decomposes the number, assembles the reference cohort of similar programs
+(with real trials and why they stopped), proposes the likely mechanism of action,
+names the failure modes, and prices the cheapest experiment that resolves each risk
+early. A disease alone yields a ranked table of candidate drugs. A second tab maps
+the AMASS clinical-trial landscape by disease.
 
-Live: https://repurpose-engine-wine.vercel.app
+The live forecast is real, not a mock: the number is deterministic math and the LLM
+(Claude) supplies grounded inputs + prose over retrieved Open Targets / Elicit / AMASS
+evidence. See `CLAUDE.md` for the full architecture (single source of truth).
+
+Live: https://repurpose-engine-wine.vercel.app (the Vercel project is still named
+`repurpose-engine`; the product was renamed from "Prognosis").
 
 ## Architecture
 
 ```
-Disease ──Open Targets──> Targets (association scores) ──> Selected target
-                                                              │
-                        ┌─────────────────────────────────────┘
-                        v
-        Reference cohort (AMASS trials, patents, literature)
-                        │
-                        v
-     Forecast: attrition risk · failure modes · kill experiments ·
-               modality feasibility · calibration backtest
+Inputs (any of): disease · target · drug ──> one Compute button dispatches a lens:
+  disease + target (+drug)  ─> target lens      (validation = OT genetic association)
+  disease + drug (no target)─> target-free lens (validation = drug efficacy evidence)
+  disease alone             ─> discovery: ranked candidate-drug table
+
+  For a forecast lens:
+     Open Targets cohort + Elicit literature + AMASS patents/trials
+                          │
+                          v
+     LLM curates a real cohort · modality/failure-modes/derisking · mechanism of
+     action (graded) · verdict/confidence
+                          │
+                          v
+     Deterministic attrition = 1 − PoS  (hard 0 if the drug is already approved
+     for this indication) · decomposition · swimlanes · patents · literature
 ```
 
-- **Targets are generated from Open Targets** (`pipeline/opentargets.py`), not
-  hand-picked: the GraphQL Platform API returns each disease's associated
-  targets with real association scores and evidence breakdown.
-- **Trial landscape** is the harvested AMASS `trialcore` cache stratified by
-  disease (`pipeline/trial_taxonomy.py`).
-- The **forecast reports themselves are still authored/illustrative** placeholders
-  for the agentic model (AMASS + Elicit + reasoning) that produces the attrition
-  score. That model is the next build; the data backbone around it is real.
+- **Targets, cohort, patents, literature, trials, per-indication approvals are all
+  live/real** (Open Targets GraphQL, Elicit, AMASS, ChEMBL). The narrative sections
+  are LLM-generated over that evidence, grounded but not verified clinical fact.
+- **A drug already approved for the queried indication reads 0% attrition** (a fact),
+  detected from Open Targets `drug.indications` (EFO + subtype match).
+- **Trial landscape** (second tab) is the harvested AMASS `trialcore` cache stratified
+  by disease (`pipeline/trial_taxonomy.py`).
+- The calibration backtest is the only illustrative piece (shown for the 4 authored
+  demo pairs; coefficients are literature point estimates, not yet fitted).
 
 ## Backend (Supabase)
 
@@ -39,14 +53,17 @@ All UI data is served from Supabase (`pg_*` tables, public-read RLS):
 |-------|----------|
 | `pg_diseases` | diseases offered in the UI + their EFO/MONDO id |
 | `pg_targets` | Open Targets targets per disease, ranked, `modeled` flag |
-| `pg_reports` | authored forecast reports (jsonb) |
-| `pg_trials` | harvested AMASS trials (deduped) |
-| `pg_trial_disease` | trial to (area, disease) map |
-| `pg_trial_disease_stats` | aggregate distribution the landscape tab reads |
-| `pg_trial_meta` | header totals + caveat |
+| `pg_reports` | the 4 authored demo forecast reports (jsonb) |
+| `pg_drugs` | ~16.7k ChEMBL approved + experimental drugs (type-ahead) |
+| `pg_disease_terms` | AMASS MeSH conditions for the disease type-ahead |
+| `pg_literature` | Elicit papers per authored pair |
+| `pg_trials` / `pg_trial_disease` / `pg_trial_disease_stats` / `pg_trial_meta` | harvested AMASS trials + the landscape-tab distribution |
+| `forecast_cache` | whole-forecast cache (keyed by `SCHEMA_VERSION\|disease\|target\|drugKey`) |
+| `pg_evidence` | fine-grained cache-through: patents, drug trials, efficacy grades, discovery lists, drug approvals, disease descendants |
 
-The Next.js app reads these via PostgREST (`web/src/lib/server-data.ts`) in a
-server component; nothing computes at request time beyond the query.
+Static UI data is read via PostgREST (`web/src/lib/server-data.ts`) in a server
+component. Live forecasts run in API routes (`/api/forecast`, `/api/forecast-by-drug`,
+`/api/discover-drugs`, `/api/predict`) and cache through `forecast_cache` / `pg_evidence`.
 
 ## Refreshing the data
 
@@ -67,8 +84,11 @@ the live app uses the Supabase copy.
 ## Web app
 
 ```bash
-cd web && npm install && npm run dev   # needs SUPABASE_URL + SUPABASE_ANON_KEY
+cd web && npm install && npm run dev
 ```
 
-Requires `SUPABASE_URL`, `SUPABASE_ANON_KEY` (web) and, for the loader,
-`SUPABASE_SERVICE_ROLE_KEY`, `AMASS_API_KEY` (root `.env`). See `.env.example`.
+Env (all server-side; never `NEXT_PUBLIC_`), in `web/.env.local` + Vercel:
+`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (cache writes),
+`ANTHROPIC_API_KEY` + `ELICIT_API_KEY` (live forecast), `AMASS_API_KEY` (patents/trials).
+The loader also uses the root `.env`. See `.env.example`. Deploy: `cd web &&
+npx vercel deploy --prod --yes` (uploads the working dir; not git-triggered).
