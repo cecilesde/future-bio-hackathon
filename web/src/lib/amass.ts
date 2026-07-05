@@ -38,6 +38,34 @@ async function amassSearch(core: string, query: string, limit: number): Promise<
 const str = (v: unknown): string | null => (typeof v === "string" && v ? v : null);
 const arr = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []);
 
+// Build a compact "Randomized · Triple-blind · Parallel" design line from the
+// AMASS design* fields (any subset present).
+function designLine(t: Record<string, unknown>): string | null {
+  const cap = (s: string) => s.charAt(0) + s.slice(1).toLowerCase();
+  const parts: string[] = [];
+  const alloc = str(t.designAllocation);
+  if (alloc) parts.push(cap(alloc.replace(/_/g, " ")));
+  const mask = str(t.designMasking);
+  if (mask && mask.toUpperCase() !== "NONE") parts.push(`${cap(mask)}-blind`);
+  const model = str(t.designInterventionModel);
+  if (model) parts.push(cap(model.replace(/_/g, " ")));
+  return parts.length ? parts.join(" · ") : null;
+}
+
+// Trial arms (dose groups / comparators), descriptions trimmed to keep payload sane.
+function armGroupsOf(v: unknown): { title: string; type: string | null; description: string | null }[] {
+  if (!Array.isArray(v)) return [];
+  return v
+    .filter((a): a is Record<string, unknown> => !!a && typeof a === "object")
+    .slice(0, 6)
+    .map((a) => ({
+      title: str(a.title) ?? "",
+      type: str(a.type),
+      description: (str(a.description) ?? "").slice(0, 240) || null,
+    }))
+    .filter((a) => a.title);
+}
+
 function googlePatentUrl(pub: string | null): string | null {
   if (!pub) return null;
   return `https://patents.google.com/patent/${pub.replace(/-/g, "")}`;
@@ -90,6 +118,15 @@ export async function searchDrugTrials(drug: string, limit = 15): Promise<{ tria
       enrollment: typeof t.enrollment === "number" ? t.enrollment : null,
       sponsor: str(t.sponsorName),
       source: "amass",
+      officialTitle: str(t.officialTitle),
+      acronym: str(t.acronym),
+      primaryOutcomes: arr(t.primaryOutcomeMeasures).slice(0, 4),
+      secondaryOutcomes: arr(t.secondaryOutcomeMeasures).slice(0, 6),
+      arms: armGroupsOf(t.armGroups),
+      design: designLine(t),
+      hasResults: t.hasResults === true,
+      resultsDate: str(t.resultsFirstPostDate),
+      conditions: arr(t.conditions).slice(0, 4),
     });
   }
   return { trials, outOfCredits: r.outOfCredits };

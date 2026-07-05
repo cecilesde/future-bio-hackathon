@@ -68,12 +68,15 @@ export async function getPatents(disease: string, target: string): Promise<Paten
 export async function getDrugTrials(drug: string): Promise<TrialDetail[]> {
   const ref = drug.trim();
   if (!ref) return [];
-  const cacheKey = keyOf("drug_trials", ref);
+  // Versioned kind: bump when the mapped TrialDetail shape changes so old rows miss
+  // and re-fetch (v2 added outcome measures, arms, design, results fields).
+  const kind = "drug_trials_v2";
+  const cacheKey = keyOf(kind, ref);
   const cached = await readCache<TrialDetail>(cacheKey);
   if (cached) return cached;
 
   const { trials, outOfCredits } = await searchDrugTrials(ref, 15);
-  if (!outOfCredits && trials.length) await writeCache(cacheKey, "drug_trials", ref, trials);
+  if (!outOfCredits && trials.length) await writeCache(cacheKey, kind, ref, trials);
   return trials;
 }
 

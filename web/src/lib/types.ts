@@ -68,6 +68,17 @@ export interface TrialDetail {
   enrollment?: number | null;
   sponsor?: string | null;
   source?: "open_targets" | "amass";
+  // deeper AMASS trialcore fields, surfaced in the per-trial dropdown so a user can
+  // see what the trial measured and how it was run, not just a one-line status.
+  officialTitle?: string | null;
+  acronym?: string | null;
+  primaryOutcomes?: string[]; // what the trial was powered to show
+  secondaryOutcomes?: string[];
+  arms?: { title: string; type: string | null; description: string | null }[]; // doses / comparators
+  design?: string | null; // e.g. "Randomized · Triple-blind · Parallel"
+  hasResults?: boolean; // results section posted on the registry
+  resultsDate?: string | null;
+  conditions?: string[]; // the indication(s) the trial was actually run in
 }
 
 export interface CohortProgram {

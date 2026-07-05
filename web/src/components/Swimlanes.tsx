@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 import { PHASES } from "@/lib/types";
 import type { CohortProgram, Phase, Outcome, TrialDetail } from "@/lib/types";
 
@@ -65,10 +65,25 @@ function trialStatusColor(s: string | null): string {
   return "var(--muted)";
 }
 
+function MetaBlock({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="mt-1.5">
+      <div className="mono text-[9px] uppercase tracking-wider t-muted mb-0.5">{label}</div>
+      {children}
+    </div>
+  );
+}
+
 function TrialRow({ t }: { t: TrialDetail }) {
   const col = trialStatusColor(t.status);
+  const title = t.officialTitle || t.title;
+  const admin = t.stopReasonCategories.includes("Administrative");
+  const scientific = t.stopReasonCategories.includes("Efficacy/Safety");
+  const primary = t.primaryOutcomes ?? [];
+  const secondary = t.secondaryOutcomes ?? [];
+  const arms = t.arms ?? [];
   return (
-    <div className="grid sm:grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 py-1.5">
+    <div className="grid sm:grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 py-2.5">
       <span
         className="pill mono self-start whitespace-nowrap"
         style={{ color: col, borderColor: col, fontSize: 9.5 }}
@@ -76,49 +91,106 @@ function TrialRow({ t }: { t: TrialDetail }) {
         {(t.phase || "?").replace(/_/g, " ")} · {t.status ?? "?"}
       </span>
       <div className="min-w-0">
-        {t.title &&
+        {/* header line: acronym, design, N, results link */}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mb-0.5">
+          {t.acronym && (
+            <span className="mono text-[10px] t-accent uppercase tracking-wide">{t.acronym}</span>
+          )}
+          {t.design && <span className="mono text-[10px] t-muted">{t.design}</span>}
+          {typeof t.enrollment === "number" && t.enrollment > 0 && (
+            <span className="mono text-[10px] t-muted">n={t.enrollment.toLocaleString()}</span>
+          )}
+          {t.hasResults && t.url && (
+            <a
+              href={t.url}
+              target="_blank"
+              rel="noreferrer"
+              className="mono text-[10px] hover:underline"
+              style={{ color: "var(--green)" }}
+            >
+              results posted{t.resultsDate ? ` ${fmtDate(t.resultsDate)}` : ""} ↗
+            </a>
+          )}
+        </div>
+
+        {title &&
           (t.url ? (
             <a
               href={t.url}
               target="_blank"
               rel="noreferrer"
-              className="t-accent text-[12.5px] leading-snug hover:underline block truncate"
-              title={t.title}
+              className="t-accent text-[12.5px] leading-snug hover:underline block"
+              title={title}
             >
-              {t.title}
+              {title}
             </a>
           ) : (
-            <span className="t-dim text-[12.5px] leading-snug block truncate" title={t.title}>
-              {t.title}
+            <span className="t-dim text-[12.5px] leading-snug block" title={title}>
+              {title}
             </span>
           ))}
-        <span className="mono text-[10.5px] t-muted">
+
+        <span className="mono text-[10.5px] t-muted block">
           {fmtDate(t.startDate)} → {fmtDate(t.completionDate)}
-          {typeof t.enrollment === "number" && t.enrollment > 0 ? ` · n=${t.enrollment.toLocaleString()}` : ""}
           {t.nctId ? ` · ${t.nctId}` : ""}
+          {t.sponsor ? ` · ${t.sponsor}` : ""}
         </span>
-        {t.sponsor && <span className="mono text-[10.5px] t-muted block">{t.sponsor}</span>}
-        {t.whyStopped &&
-          (() => {
-            const admin = t.stopReasonCategories.includes("Administrative");
-            const scientific = t.stopReasonCategories.includes("Efficacy/Safety");
-            // Administrative stops (funding, PI left, slow recruitment, the
-            // pandemic) are NOT a failure of the science; show them muted so they
-            // do not read like an efficacy/safety failure. Efficacy/safety stops
-            // are the real signal and stay red.
-            const col = admin ? "var(--muted)" : scientific ? "var(--red)" : "var(--amber)";
-            const lead = admin ? "stopped (administrative)" : scientific ? "stopped (efficacy/safety)" : "stopped";
-            return (
-              <p className="text-[12px] leading-snug mt-0.5" style={{ color: col }}>
-                {lead}: {t.whyStopped}
-              </p>
-            );
-          })()}
-        {t.summary && (
-          <p className="text-[11.5px] t-muted leading-snug mt-0.5 line-clamp-3">{t.summary}</p>
+
+        {t.whyStopped && (
+          // Administrative stops (funding, PI left, slow recruitment, the pandemic)
+          // are NOT a failure of the science; muted. Efficacy/safety stops are the
+          // real signal and stay red.
+          <p
+            className="text-[12px] leading-snug mt-1"
+            style={{ color: admin ? "var(--muted)" : scientific ? "var(--red)" : "var(--amber)" }}
+          >
+            {admin ? "stopped (administrative)" : scientific ? "stopped (efficacy/safety)" : "stopped"}:{" "}
+            {t.whyStopped}
+          </p>
         )}
+
+        {primary.length > 0 && (
+          <MetaBlock label="Primary endpoint(s) — what the trial had to show">
+            <ul className="text-[11.5px] t-dim leading-snug list-disc pl-4">
+              {primary.map((o, i) => (
+                <li key={i}>{o}</li>
+              ))}
+            </ul>
+          </MetaBlock>
+        )}
+
+        {arms.length > 0 && (
+          <MetaBlock label="Arms">
+            <ul className="text-[11.5px] t-dim leading-snug space-y-0.5">
+              {arms.map((a, i) => (
+                <li key={i}>
+                  <span className="t-accent">{a.title}</span>
+                  {a.type ? <span className="mono text-[9.5px] t-muted"> · {a.type.toLowerCase().replace(/_/g, " ")}</span> : null}
+                  {a.description ? <span className="t-muted">: {a.description}</span> : null}
+                </li>
+              ))}
+            </ul>
+          </MetaBlock>
+        )}
+
+        {t.summary && (
+          <MetaBlock label="Summary">
+            <p className="text-[11.5px] t-muted leading-snug">{t.summary}</p>
+          </MetaBlock>
+        )}
+
+        {secondary.length > 0 && (
+          <MetaBlock label="Secondary endpoints">
+            <p className="text-[11px] t-muted leading-snug">{secondary.join(" · ")}</p>
+          </MetaBlock>
+        )}
+
+        {(t.conditions?.length ?? 0) > 0 && (
+          <p className="mono text-[10px] t-muted mt-1.5">indication: {t.conditions!.join(", ")}</p>
+        )}
+
         {t.stopReasonCategories.filter((c) => c !== "Other").length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-1">
+          <div className="flex flex-wrap gap-1 mt-1.5">
             {t.stopReasonCategories
               .filter((c) => c !== "Other")
               .map((c) => (

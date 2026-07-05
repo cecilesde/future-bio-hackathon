@@ -392,6 +392,16 @@ async function enrichCohortWithAmass(cohort: CohortProgram[], diseaseTokensList:
           summary: t.summary ?? a.summary,
           enrollment: t.enrollment ?? a.enrollment,
           sponsor: t.sponsor ?? a.sponsor,
+          // deeper detail from the matched AMASS record (OT reports lack these)
+          officialTitle: t.officialTitle ?? a.officialTitle,
+          acronym: t.acronym ?? a.acronym,
+          primaryOutcomes: t.primaryOutcomes ?? a.primaryOutcomes,
+          secondaryOutcomes: t.secondaryOutcomes ?? a.secondaryOutcomes,
+          arms: t.arms ?? a.arms,
+          design: t.design ?? a.design,
+          hasResults: t.hasResults ?? a.hasResults,
+          resultsDate: t.resultsDate ?? a.resultsDate,
+          conditions: t.conditions ?? a.conditions,
         };
       });
 
