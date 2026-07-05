@@ -99,11 +99,25 @@ export interface AttritionScore {
   approved?: boolean; // true => drug already approved for this indication (hard 0)
 }
 
+// Regularize a decided-cohort fail fraction toward the precedent prior with a small
+// pseudocount, so a fraction taken over 1-2 decided programs (statistically
+// meaningless) cannot swing the precedent odds ratio to an extreme (a lone 1/1 cohort
+// would otherwise read as "100% of analogues failed" and crush the score). This is a
+// weak Beta(PRIOR) prior: with PSEUDOCOUNT virtual programs at the prior mean, a real
+// cohort has to be sizeable before it can move the fraction far from the pivot. Large
+// cohorts are barely touched. `decided <= 0` stays null/neutral (no analogues).
+export const PRECEDENT_PRIOR = 0.4; // the precedent OR's neutral pivot (see attritionMath)
+export const PRECEDENT_PSEUDOCOUNT = 2; // strength of the prior, in virtual programs
+export function shrinkFailFraction(failed: number, decided: number): number | null {
+  if (decided <= 0) return null;
+  return (failed + PRECEDENT_PSEUDOCOUNT * PRECEDENT_PRIOR) / (decided + PRECEDENT_PSEUDOCOUNT);
+}
+
 function cohortFailFraction(report: Report): number {
   const decided = report.cohort.filter((c) => c.outcome !== "Ongoing");
   if (!decided.length) return 0.5;
   const failed = decided.filter((c) => c.outcome === "Failed" || c.outcome === "Discontinued").length;
-  return failed / decided.length;
+  return shrinkFailFraction(failed, decided.length) ?? 0.5;
 }
 
 // ---- the sole attrition math ----

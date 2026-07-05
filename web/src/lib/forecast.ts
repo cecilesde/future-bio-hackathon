@@ -16,6 +16,7 @@ import {
   areaOf,
   phaseOf,
   confidenceOf,
+  shrinkFailFraction,
   type AttritionScore,
 } from "./attrition";
 import { extract } from "./llm";
@@ -364,7 +365,7 @@ async function curateCohort(
   const sl = subjectLines(input, subjectModality);
   const user = `Subject program:\n${sl.block}\n\n${sl.heading}:\n${cohortLines(rankCandidates(cands).slice(0, 25))}\n\nBuild the reference-class cohort, grounded strictly in the rows above.`;
 
-  const data = await extract<CuratedCohort>(system, user, schema, { effort: "low", maxTokens: 3500 });
+  const data = await extract<CuratedCohort>(system, user, schema, { effort: "low", maxTokens: 5000 });
   const cohort = (data.cohort ?? []).filter((c) => c.drug);
   return { cohort, cohortSummary: data.cohortSummary ?? "" };
 }
@@ -511,7 +512,7 @@ async function modalityAndRisks(
     "You are a translational-medicine risk analyst. Given a subject program (disease + target + modality), its real reference-class cohort with each program's failure reason, the literature, and the patent landscape, produce three things: (1) modality feasibility: an overall 0-1 score plus named axes (e.g. stability, permeability, bioavailability, target-tissue access, CMC) each with a 0-1 score and a one-line note; (2) failure modes: the recurring ways THIS program can die, each with a share of total attrition risk (shares ~sum to 1), the mechanism, evidence (cite the cohort's actual failures, the literature, or the patents), a cheap kill experiment, its cost and timeline, and a signal (green=low/monitored, amber=live, red=likely); (3) a derisking plan: the kill experiments ordered by value of information. Ground failure modes in how analogous programs actually failed. The patent landscape informs competitive/freedom-to-operate and differentiation risk. Do not output any probability of overall success; that is computed separately." + STYLE;
   const user = `Subject: ${subjectHead(input)} in ${input.diseaseName}, modality ${subjectModality}.\n\nReference-class cohort and how each ended:\n${cohortSummary}\n\nLiterature:\n${paperLines(papers)}\n\nPatent landscape (AMASS patentcore):\n${patentLines(patents)}\n\nProduce modality feasibility, failure modes, and the derisking plan.`;
 
-  const data = await extract<ModalityAndRisks>(system, user, schema, { effort: "medium", maxTokens: 4000 });
+  const data = await extract<ModalityAndRisks>(system, user, schema, { effort: "medium", maxTokens: 6000 });
   return {
     modality: data.modality,
     failureModes: data.failureModes ?? [],
@@ -658,7 +659,7 @@ async function judge(
     STYLE;
   const user = `Subject: ${subjectHead(input)} in ${input.diseaseName}.\n\nVerdict framing: ${verdictGuidance}\n\nEvidence:\n${evidence}\n\nDecomposition terms:\n${score.components.map((c) => `- ${c.label}: ${c.kind === "factor" ? `x${c.value.toFixed(2)}` : `${Math.round(c.value * 100)}%`}`).join("\n")}\n\nWrite the verdict, a justification for the ${confidence} confidence grade, the most-likely exit phase, and the proposer/skeptic cases.`;
 
-  const data = await extract<Omit<Judgement, "confidence">>(system, user, schema, { effort: "high", maxTokens: 2500 });
+  const data = await extract<Omit<Judgement, "confidence">>(system, user, schema, { effort: "high", maxTokens: 4000 });
   return {
     verdict: data.verdict ?? "",
     confidence,
@@ -723,7 +724,10 @@ export function rawFailFraction(cands: CohortCandidate[]): number | null {
       decided++;
     }
   }
-  return decided ? failed / decided : null;
+  // Same thin-cohort regularization as the curated path (shrinkFailFraction): a
+  // fraction over 1-2 decided programs must not swing the precedent term. null (no
+  // decided analogues) is preserved, so the blind/holdback neutral case is unchanged.
+  return shrinkFailFraction(failed, decided);
 }
 
 export interface DrugAttritionScore {

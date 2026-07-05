@@ -7,7 +7,7 @@ import type { Drug } from "./types";
 import type { ForecastResult } from "./forecast";
 
 // Bump when the cached report shape changes so old rows miss and regenerate.
-export const SCHEMA_VERSION = "v15"; // v15: literature-outage aware verdict prose, low-attrition verdict framing, "-" exit phase under 10%
+export const SCHEMA_VERSION = "v16"; // v16: thin-cohort precedent-term shrinkage (regularize fail fraction toward 0.4 prior)
 
 export function drugKeyOf(drugs: Drug[]): string {
   return drugs
