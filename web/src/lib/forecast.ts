@@ -15,6 +15,7 @@ import {
   attritionMath,
   areaOf,
   phaseOf,
+  confidenceOf,
   type AttritionScore,
 } from "./attrition";
 import { extract } from "./llm";
@@ -592,14 +593,16 @@ async function judge(
   patentsCount: number,
   efficacyLevel?: string
 ): Promise<Judgement> {
+  // The confidence GRADE is computed deterministically (confidenceOf), not emitted by
+  // the LLM, so it is reproducible and immune to a transient literature-retrieval
+  // outage. The LLM only writes the one-line explanation of that given grade.
   const schema = {
     type: "object",
     additionalProperties: false,
-    required: ["verdict", "confidence", "confidenceReason", "exitPhase", "bull", "bear"],
+    required: ["verdict", "confidenceReason", "exitPhase", "bull", "bear"],
     properties: {
       verdict: { type: "string", description: "one or two sentences: the crux — what this program lives or dies on" },
-      confidence: { type: "string", enum: ["High", "Moderate", "Low"] },
-      confidenceReason: { type: "string", description: "grounded in evidence density: cohort size, association strength, literature agreement" },
+      confidenceReason: { type: "string", description: "one or two sentences justifying the GIVEN confidence grade, grounded in evidence density: decided-cohort size, its consistency, validation strength, and the drug's phase" },
       exitPhase: { type: "string", enum: ["Preclinical", "Phase 1", "Phase 2", "Phase 3", "Filed", "Approved"] },
       bull: { type: "array", items: { type: "string" }, description: "3-4 strongest points to advance" },
       bear: { type: "array", items: { type: "string" }, description: "3-4 strongest points to kill; try to falsify the bull case" },
@@ -608,6 +611,17 @@ async function judge(
 
   const decided = cohort.filter((c) => c.outcome !== "Ongoing").length;
   const failed = cohort.filter((c) => c.outcome === "Failed" || c.outcome === "Discontinued").length;
+  const leadMaxPhase = input.drugs.length
+    ? Math.max(...input.drugs.map((d) => d.max_phase ?? 0))
+    : null;
+  // Deterministic confidence in the estimate (see confidenceOf).
+  const confidence = confidenceOf({
+    decided,
+    validation: association,
+    cohortFailFraction: decided ? failed / decided : null,
+    leadMaxPhase,
+  });
+
   const evidence = [
     `Computed attrition risk: ${Math.round(score.attrition * 100)}% (probability of failure before approval).`,
     `Dominant driver of the score: ${score.drivenBy}.`,
@@ -617,21 +631,18 @@ async function judge(
       : `Open Targets association: ${associationFound ? association.toFixed(2) : "no association row (neutral prior used)"}.`,
     `Literature retrieved: ${papersCount} papers.`,
     `Patents retrieved: ${patentsCount} (AMASS patentcore).`,
+    `Confidence grade (computed deterministically from evidence density): ${confidence}.`,
   ].join("\n");
 
-  const rubric =
-    "Confidence rubric (evidence density, not optimism): High = >=5 decided analogous programs AND association >=0.5 AND consistent literature; Moderate = a partial reference class or mixed evidence; Low = sparse cohort (<3 decided), no association row, or contested mechanism. Then run an adversarial check: try to refute your own verdict against the failure record; if the refutation has force, cap confidence one level lower.";
-
   const system =
-    "You are the lead forecaster writing the verdict for a drug-program attrition report. You are given the already-computed attrition number and the evidence it was built from. Write the crux verdict (what the program lives or dies on), assign a confidence using the rubric, name the most likely phase of failure, and give the proposer (advance) and skeptic (kill) cases. Do not restate or alter the attrition number. " +
-    rubric +
+    "You are the lead forecaster writing the verdict for a drug-program attrition report. You are given the already-computed attrition number, the evidence it was built from, and a confidence grade that has ALREADY been computed deterministically from evidence density. Write the crux verdict (what the program lives or dies on), a one-to-two sentence explanation that HONESTLY justifies the GIVEN confidence grade (cite the decided-cohort size and its consistency, the validation/efficacy strength, and the drug's phase; state the caveats openly, e.g. a thin or mixed cohort, or absent literature). Do NOT assign or change the confidence grade yourself, and do not restate or alter the attrition number. Also name the most likely phase of failure and give the proposer (advance) and skeptic (kill) cases; try to falsify the bull case in the bear case. " +
     STYLE;
-  const user = `Subject: ${subjectHead(input)} in ${input.diseaseName}.\n\nEvidence:\n${evidence}\n\nDecomposition terms:\n${score.components.map((c) => `- ${c.label}: ${c.kind === "factor" ? `x${c.value.toFixed(2)}` : `${Math.round(c.value * 100)}%`}`).join("\n")}\n\nWrite the verdict, confidence (with the rubric + adversarial check), most-likely exit phase, and the proposer/skeptic cases.`;
+  const user = `Subject: ${subjectHead(input)} in ${input.diseaseName}.\n\nEvidence:\n${evidence}\n\nDecomposition terms:\n${score.components.map((c) => `- ${c.label}: ${c.kind === "factor" ? `x${c.value.toFixed(2)}` : `${Math.round(c.value * 100)}%`}`).join("\n")}\n\nWrite the verdict, a justification for the ${confidence} confidence grade, the most-likely exit phase, and the proposer/skeptic cases.`;
 
-  const data = await extract<Judgement>(system, user, schema, { effort: "high", maxTokens: 2500 });
+  const data = await extract<Omit<Judgement, "confidence">>(system, user, schema, { effort: "high", maxTokens: 2500 });
   return {
     verdict: data.verdict ?? "",
-    confidence: data.confidence ?? "Low",
+    confidence,
     confidenceReason: data.confidenceReason ?? "",
     exitPhase: data.exitPhase ?? "Phase 2",
     bull: data.bull ?? [],

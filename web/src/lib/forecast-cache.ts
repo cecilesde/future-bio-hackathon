@@ -7,7 +7,7 @@ import type { Drug } from "./types";
 import type { ForecastResult } from "./forecast";
 
 // Bump when the cached report shape changes so old rows miss and regenerate.
-export const SCHEMA_VERSION = "v13"; // v13: approved-for-indication ontology xref bridge
+export const SCHEMA_VERSION = "v14"; // v14: deterministic confidence (confidenceOf), LLM no longer emits the grade
 
 export function drugKeyOf(drugs: Drug[]): string {
   return drugs

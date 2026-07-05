@@ -37,6 +37,30 @@ const PHASE_LABEL: Record<PhaseKey, string> = {
   filed: "filed",
 };
 
+// Deterministic confidence in the attrition ESTIMATE (not how good the outcome is).
+// It measures how well-grounded the number is, from the same countable features that
+// anchor the score: how many decided analogues stand behind the precedent term, how
+// consistent they are (a 7/7 or 0/7 cohort is informative; a 50/50 one is not), how
+// strong the validation term is, and how far the subject drug itself has advanced (a
+// late-phase/approved drug anchors the base rate). It deliberately does NOT read the
+// live literature count, so a transient Elicit outage cannot move it, and the LLM
+// never emits it (consistent with the number being deterministic).
+export function confidenceOf(f: {
+  decided: number; // decided (non-ongoing) analogous programs in the cohort
+  validation: number; // 0-1: genetic association (target lens) or drug efficacy score
+  cohortFailFraction: number | null; // decided-cohort fail fraction (null => no decided cohort)
+  leadMaxPhase: number | null; // subject drug's furthest clinical phase
+}): "High" | "Moderate" | "Low" {
+  const consistency = f.cohortFailFraction == null ? 0 : Math.abs(f.cohortFailFraction - 0.5) * 2;
+  let s = 0;
+  if (f.decided >= 5) s += 2;
+  else if (f.decided >= 3) s += 1;
+  if (f.validation >= 0.6) s += 1; // strong validation / efficacy signal
+  if (consistency >= 0.6) s += 1; // the decided cohort agrees (mostly one direction)
+  if ((f.leadMaxPhase ?? 0) >= 3) s += 1; // subject is late-stage or approved
+  return s >= 3 ? "High" : s >= 1 ? "Moderate" : "Low";
+}
+
 export function areaOf(diseaseName: string): AreaKey {
   const n = diseaseName.toLowerCase();
   if (/obesit|diabet|metaboli|lipid|nash|endocrin/.test(n)) return "metabolic";
