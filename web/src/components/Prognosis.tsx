@@ -8,6 +8,7 @@ import PickerInput, { type PickItem } from "./PickerInput";
 import PredictionPanel from "./PredictionPanel";
 import {
   VerdictBand,
+  HoldbackBanner,
   AttritionComposition,
   MechanismPanel,
   FailureModes,
@@ -89,7 +90,7 @@ export default function Prognosis({
     : null;
 
   // ---- live forecast (non-authored pairs) ----
-  const drugKey = useMemo(() => drugs.map((d) => d.chembl_id).sort().join(","), [drugs]);
+  const drugKey = useMemo(() => drugs.map((d) => d.chembl_id || d.name).sort().join(","), [drugs]);
   const subjectKey = `${diseaseName}|${symbol}|${drugKey}`;
   const [live, setLive] = useState<LiveForecast | null>(null);
   const [pending, setPending] = useState<LivePending | null>(null);
@@ -164,7 +165,10 @@ export default function Prognosis({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "forecast failed");
-      const key = `${diseaseName}|_DRUGFREE_|${drug.chembl_id || drug.name}`;
+      // Must match the render-time subjectKey exactly: `${diseaseName}|${symbol}|${drugKey}`.
+      // Target-free means no target (symbol === ""), and drugKey is this drug's chembl_id
+      // (or name). A stale `_DRUGFREE_` sentinel here never matched, so results never rendered.
+      const key = `${diseaseName}||${drug.chembl_id || drug.name}`;
       setLive({ ...(data as LiveForecast), subjectKey: key, targetFree: true });
       setTfState(null);
     } catch (e) {
@@ -364,12 +368,21 @@ function ReportView({
 }) {
   return (
     <div className="flex flex-col gap-10 pb-16" key={keyId}>
+      {report.holdback && <HoldbackBanner holdback={report.holdback} />}
       <VerdictBand report={report} attrition={score.attrition} approved={score.approved} />
       <AttritionComposition score={score} />
       <MechanismPanel mechanism={report.mechanism} />
 
       <div className="rise">
         <Swimlanes cohort={report.cohort} exitPhase={report.exitPhase} />
+        {report.holdback && (
+          <p className="text-[12.5px] mt-3 leading-snug max-w-[88ch]" style={{ color: "var(--amber)" }}>
+            Reference class over the full history, shown for context. Programs that were decided only
+            after {report.holdback.asOfDate} did <strong>not</strong> feed the blind attrition number
+            (its precedent term counts only programs decided by the cutoff). Read this as what later
+            happened to the class, not as an input the model saw.
+          </p>
+        )}
         <p className="text-[13px] t-muted mt-3 leading-snug max-w-[80ch]">{report.cohortSummary}</p>
         <p className="mono text-[11px] t-muted mt-1">
           Select any program above for its trials, dates, and why it stopped.

@@ -12,7 +12,7 @@
 import type { Report, TargetAssoc, Drug } from "./types";
 
 type AreaKey = "metabolic" | "neurology" | "oncology" | "default";
-type PhaseKey = "pre" | "p1" | "p2" | "p3" | "filed";
+export type PhaseKey = "pre" | "p1" | "p2" | "p3" | "filed";
 
 // P(approval | currently at phase), by therapeutic area. Shape follows published
 // likelihood-of-approval data (Wong, Siah & Lo 2019; BIO/Informa success rates).
@@ -83,8 +83,9 @@ function cohortFailFraction(report: Report): number {
 }
 
 // ---- the sole attrition math ----
-// Both computeAttrition (from a full Report) and the target tournament (from raw
-// features) call this, so the formula can never drift between the two paths.
+// computeAttrition, computeAttritionTargetFree, and the discovery scorer
+// (scoreDrugsTargetFree, from raw features) all call this, so the formula can
+// never drift between the paths.
 export interface AttritionFeatures {
   area: AreaKey;
   phase: PhaseKey;
@@ -140,6 +141,7 @@ function buildScore(p: {
   modalityLabel: string;
   second: SecondTerm;
   precedentInput: string;
+  precedentLabel?: string; // override the default "N% of analogues failed" label
   driverPrecedent: string;
   driverValidation: string;
 }): AttritionScore {
@@ -164,7 +166,7 @@ function buildScore(p: {
       input: p.modalityLabel,
     },
     {
-      label: `Reference-class precedent · ${Math.round(p.fail * 100)}% of analogues failed`,
+      label: p.precedentLabel ?? `Reference-class precedent · ${Math.round(p.fail * 100)}% of analogues failed`,
       kind: "factor",
       value: orPrecedent,
       input: p.precedentInput,
@@ -272,20 +274,28 @@ export function computeAttritionTargetFree(args: {
   efficacyRationale: string;
   efficacyLevel: string;
   approvedForIndication?: boolean;
+  phaseOverride?: PhaseKey; // holdback mode: score the base rate as-of the cutoff phase,
+  //                           not the drug's terminal max_phase high-water mark.
+  cohortFailFractionOverride?: number | null; // holdback mode: a deterministic fail
+  //   fraction computed from the CENSORED raw cohort, so the precedent term does not
+  //   read the LLM curator's (parametric-knowledge) outcome labels. undefined => use
+  //   the LLM-curated cohort (normal path). null => neutral.
 }): AttritionScore {
   const { diseaseName, drug, report, efficacyEvidence, efficacyRationale, efficacyLevel } = args;
   if (args.approvedForIndication) return approvedScore(diseaseName, drug);
   const area = areaOf(diseaseName);
-  const phase = phaseOf(drug.max_phase);
+  const phase = args.phaseOverride ?? phaseOf(drug.max_phase);
   const mod = clamp(report.modality.overall, 0, 1);
-  const fail = clamp(cohortFailFraction(report), 0, 1);
+  const failFraction =
+    args.cohortFailFractionOverride !== undefined ? args.cohortFailFractionOverride : cohortFailFraction(report);
+  const fail = clamp(failFraction == null ? 0.4 : failFraction, 0, 1);
 
   const { attrition, pos, terms } = attritionMath({
     area,
     phase,
     association: efficacyEvidence,
     modalityOverall: report.modality.overall,
-    cohortFailFraction: cohortFailFraction(report),
+    cohortFailFraction: failFraction,
     leadMaxPhase: drug.max_phase,
   });
 
@@ -304,7 +314,16 @@ export function computeAttritionTargetFree(args: {
       input: efficacyRationale || `${drug.name.toLowerCase()} in ${diseaseName}, own trials + literature`,
       citation: "Drug's own trials + literature",
     },
-    precedentInput: "similar programmes for this disease",
+    precedentInput:
+      args.cohortFailFractionOverride === null
+        ? "no analogous programme was decided by the cutoff (neutral, not counted)"
+        : "similar programmes for this disease",
+    // A null override means the blind precedent found no decided analogues; do not
+    // render the misleading "40% failed" default from the neutral pivot.
+    precedentLabel:
+      args.cohortFailFractionOverride === null
+        ? "Reference-class precedent · neutral (no analogues decided by the cutoff)"
+        : undefined,
     driverPrecedent: "prior failures for this indication",
     driverValidation: "drug efficacy evidence",
   });

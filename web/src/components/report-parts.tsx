@@ -36,6 +36,40 @@ function mechColor(c: MechanismOfAction["confidence"]): string {
       : "var(--red)";
 }
 
+/* -------------------------------------------------- blind retrospective mode */
+// Rendered above the verdict when a forecast was run as a prediction-as-of-cutoff.
+// It states, without spin, exactly what is and is not held back, so the demo claim
+// is honest: the attrition % is computed only from pre-cutoff data, but the written
+// narrative is NOT outcome-blind because the language model knows the later history.
+export function HoldbackBanner({ holdback }: { holdback: NonNullable<Report["holdback"]> }) {
+  const outcome = holdback.observedOutcome;
+  const outcomeColor = outcome === "failed" ? "var(--red)" : outcome === "approved" ? "var(--green)" : "var(--line-2)";
+  return (
+    <section className="panel p-5 rise" style={{ borderColor: "var(--amber)" }}>
+      <div className="flex flex-wrap items-center gap-3 mb-2">
+        <span className="pill mono uppercase text-[11px]" style={{ color: "var(--amber)", borderColor: "var(--amber)" }}>
+          Blind retrospective validation
+        </span>
+        <span className="mono text-[12px] t-dim">prediction as of {holdback.asOfDate}</span>
+        {outcome && (
+          <span className="pill mono uppercase text-[11px]" style={{ color: outcomeColor, borderColor: outcomeColor }}>
+            actual outcome: {outcome}
+          </span>
+        )}
+      </div>
+      <p className="text-[13px] t-dim leading-snug max-w-[92ch]">{holdback.label}</p>
+      <p className="text-[12.5px] t-muted leading-snug max-w-[92ch] mt-2">
+        The attrition % and its decomposition are computed <strong>only</strong> from data that existed
+        at the cutoff: the drug&apos;s post-cutoff trial outcomes and literature are withheld, it is removed
+        from its own reference cohort, the precedent term counts only programs decided by the cutoff, and
+        the base rate is scored at the phase it was then entering. The written narrative (verdict, failure
+        modes, bull/bear) is <strong>not</strong> outcome-blind: the language model has parametric knowledge
+        of the later history, so treat the prose as hindsight context, not as part of the blind prediction.
+      </p>
+    </section>
+  );
+}
+
 /* ------------------------------------------------------------------ verdict */
 export function VerdictBand({
   report,

@@ -98,21 +98,34 @@ function TrialRow({ t }: { t: TrialDetail }) {
           {t.nctId ? ` · ${t.nctId}` : ""}
         </span>
         {t.sponsor && <span className="mono text-[10.5px] t-muted block">{t.sponsor}</span>}
-        {t.whyStopped && (
-          <p className="text-[12px] leading-snug mt-0.5" style={{ color: "var(--red)" }}>
-            stopped: {t.whyStopped}
-          </p>
-        )}
+        {t.whyStopped &&
+          (() => {
+            const admin = t.stopReasonCategories.includes("Administrative");
+            const scientific = t.stopReasonCategories.includes("Efficacy/Safety");
+            // Administrative stops (funding, PI left, slow recruitment, the
+            // pandemic) are NOT a failure of the science; show them muted so they
+            // do not read like an efficacy/safety failure. Efficacy/safety stops
+            // are the real signal and stay red.
+            const col = admin ? "var(--muted)" : scientific ? "var(--red)" : "var(--amber)";
+            const lead = admin ? "stopped (administrative)" : scientific ? "stopped (efficacy/safety)" : "stopped";
+            return (
+              <p className="text-[12px] leading-snug mt-0.5" style={{ color: col }}>
+                {lead}: {t.whyStopped}
+              </p>
+            );
+          })()}
         {t.summary && (
           <p className="text-[11.5px] t-muted leading-snug mt-0.5 line-clamp-3">{t.summary}</p>
         )}
-        {t.stopReasonCategories.length > 0 && (
+        {t.stopReasonCategories.filter((c) => c !== "Other").length > 0 && (
           <div className="flex flex-wrap gap-1 mt-1">
-            {t.stopReasonCategories.map((c) => (
-              <span key={c} className="pill mono t-muted" style={{ fontSize: 9 }}>
-                {c.replace(/_/g, " ")}
-              </span>
-            ))}
+            {t.stopReasonCategories
+              .filter((c) => c !== "Other")
+              .map((c) => (
+                <span key={c} className="pill mono t-muted" style={{ fontSize: 9 }}>
+                  {c.replace(/_/g, " ")}
+                </span>
+              ))}
           </div>
         )}
       </div>

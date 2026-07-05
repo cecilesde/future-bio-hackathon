@@ -1,6 +1,6 @@
-// Domain model for Prognosis — a reference-class forecasting instrument for
-// drug-program attrition. All data in data.ts is illustrative (a UX mock),
-// not verified clinical fact.
+// Domain model for Attritio AI, a reference-class drug-program attrition
+// forecaster. Live forecasts are real (deterministic number + grounded LLM
+// prose); only the authored demo reports in data.ts are illustrative.
 
 export type Phase =
   | "Preclinical"
@@ -206,4 +206,11 @@ export interface Report {
   derisking: DeriskingStep[];
   calibration: Calibration;
   mechanism?: MechanismOfAction; // optional: absent on authored seeds / stale cache
+  // Present only on a blind retrospective validation run (prediction-as-of-cutoff).
+  holdback?: {
+    asOfDate: string;
+    asOfPhase: "pre" | "p1" | "p2" | "p3" | "filed";
+    observedOutcome?: "failed" | "approved";
+    label: string;
+  };
 }

@@ -7,7 +7,7 @@ import type { Drug } from "./types";
 import type { ForecastResult } from "./forecast";
 
 // Bump when the cached report shape changes so old rows miss and regenerate.
-export const SCHEMA_VERSION = "v7"; // v7: approved-for-indication hard-0 attrition (score.approved)
+export const SCHEMA_VERSION = "v10"; // v10: dedup per-country EU trial registrations in cohort dropdowns
 
 export function drugKeyOf(drugs: Drug[]): string {
   return drugs

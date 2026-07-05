@@ -38,6 +38,14 @@ import {
   isApprovedForIndication,
   type CohortCandidate,
 } from "./opentargets";
+import {
+  holdbackFor,
+  censorTrials,
+  censorPapers,
+  censorCandidates,
+  type HoldbackConfig,
+  type HoldbackInfo,
+} from "./holdback";
 import type {
   Report,
   CohortProgram,
@@ -147,17 +155,81 @@ const STAGE_RANK: Record<string, number> = {
 };
 const MAX_TRIALS_PER_PROGRAM = 15;
 
-// Most informative first: trials with a stoppage reason, then later phase, then
-// most recent. Shared by OT attach and AMASS enrichment.
+// A stop reason is only an informative FAILURE signal if it is about efficacy or
+// safety. Registry "why-stopped" fields are dominated by administrative reasons
+// (no funding, PI left, slow recruitment, the pandemic) that say nothing about the
+// science, yet render as a red "stopped:" line that reads like a failure. Classify
+// so the UI can de-emphasise admin stops and sorting can surface the real signal.
+const SCIENTIFIC_STOP_RE =
+  /\b(effic|futil|lack of (efficacy|effect|response)|did not meet|failed to meet|no (significant )?(benefit|improvement|effect)|not superior|endpoint|primary outcome|safety|toxic|adverse|tolerab|serious adverse|risk[-\s]?benefit|mortalit|death|dsmb|data (and )?safety monitoring|interim (analysis|futility)|harm|worsen)/i;
+const ADMINISTRATIVE_STOP_RE =
+  /\b(fund|budget|financ|sponsor (decision|withdr|terminat|no longer)|business|strategic|portfolio|company|prioriti|recruit|enroll|accru|pandemic|covid|staff|resourc|logistic|administrativ|feasib|pi (has )?(left|departed|retired)|principal investigator|investigator (left|departed)|left the (universit|institution|nih|nyspi)|irb|regulatory pause|supply)/i;
+
+export function classifyStopReason(why: string | null | undefined): "Efficacy/Safety" | "Administrative" | "Other" | null {
+  if (!why || !why.trim()) return null;
+  if (SCIENTIFIC_STOP_RE.test(why)) return "Efficacy/Safety"; // science wins if both present
+  if (ADMINISTRATIVE_STOP_RE.test(why)) return "Administrative";
+  return "Other";
+}
+
+// Attach the stop-reason category so the UI can render it (muted for admin stops).
+function classifyTrial(t: TrialDetail): TrialDetail {
+  const kind = classifyStopReason(t.whyStopped);
+  if (!kind) return t;
+  const cats = t.stopReasonCategories?.length ? t.stopReasonCategories : [kind];
+  return { ...t, stopReasonCategories: cats };
+}
+
+// Rank for the dropdown: an efficacy/safety stop is the most informative row (it
+// tells you WHY the programme died), then later-phase trials, then recency.
+// Administrative stops are demoted below plain completed/ongoing trials: they are
+// noise, not a failure signal.
+function trialInformativeness(t: TrialDetail): number {
+  const kind = classifyStopReason(t.whyStopped);
+  if (kind === "Efficacy/Safety") return 3;
+  if (kind === "Administrative") return 0;
+  return 2; // completed / ongoing / uninformative stop
+}
+
+// Most informative first, then later phase, then most recent. Shared by OT attach
+// and AMASS enrichment.
 function sortTrials(a: TrialDetail, b: TrialDetail): number {
-  const wa = a.whyStopped ? 1 : 0;
-  const wb = b.whyStopped ? 1 : 0;
-  if (wb !== wa) return wb - wa;
+  const ia = trialInformativeness(a);
+  const ib = trialInformativeness(b);
+  if (ib !== ia) return ib - ia;
   const sr = (STAGE_RANK[b.phase] ?? 0) - (STAGE_RANK[a.phase] ?? 0);
   if (sr) return sr;
   return (b.startDate ?? "").localeCompare(a.startDate ?? "");
 }
-const trialKey = (t: TrialDetail) => t.nctId ?? `${t.title ?? ""}|${t.phase}|${t.startDate ?? ""}`;
+
+// Tokens used to keep AMASS-only trials on-indication. A bare drug-name AMASS
+// query returns the drug's trials across ALL indications; we only want to ADD ones
+// plausibly about the queried disease. Prefix-match (>=5 chars) so "depression"
+// also catches "depressive". Generic words are dropped.
+const DISEASE_STOPWORDS = new Set(["disease", "disorder", "disorders", "syndrome", "chronic", "acute", "the", "of", "and", "with"]);
+export function diseaseTokens(name: string): string[] {
+  return Array.from(
+    new Set(
+      (name.toLowerCase().match(/[a-z]{4,}/g) ?? [])
+        .filter((w) => !DISEASE_STOPWORDS.has(w))
+        .map((w) => w.slice(0, Math.min(6, w.length)))
+    )
+  );
+}
+function trialMatchesDisease(t: TrialDetail, tokens: string[]): boolean {
+  if (!tokens.length) return true;
+  const hay = `${t.title ?? ""} ${t.summary ?? ""}`.toLowerCase();
+  return tokens.some((tok) => hay.includes(tok));
+}
+// EU CTR trials are registered once PER COUNTRY under the same eudract number with
+// a 2-letter country suffix (EUCTR2017-002702-12-BE, -DE, -SE, ...). Collapse them
+// to the eudract number so a multinational trial is one row, not fifteen.
+function normalizeTrialId(id: string | null): string | null {
+  if (!id) return null;
+  const m = id.match(/^(EUCTR\d{4}-\d{6}-\d{2})-[A-Z]{2}$/i);
+  return m ? m[1].toUpperCase() : id;
+}
+const trialKey = (t: TrialDetail) => normalizeTrialId(t.nctId) ?? `${t.title ?? ""}|${t.phase}`;
 
 // Join each curated program back to its raw Open Targets candidate (by drugId,
 // then drug name) and attach the real trials. Ground-truth structured data, not
@@ -302,13 +374,14 @@ async function curateCohort(
 // have, by NCT id, and (b) add AMASS-only trials. This is what makes the "similar
 // programmes" dropdowns detailed on exactly why each programme died. Capped after
 // merge to keep payload sane.
-async function enrichCohortWithAmass(cohort: CohortProgram[]): Promise<CohortProgram[]> {
+async function enrichCohortWithAmass(cohort: CohortProgram[], diseaseTokensList: string[]): Promise<CohortProgram[]> {
   return Promise.all(
     cohort.map(async (p) => {
       const amass = await getDrugTrials(p.drug).catch(() => [] as TrialDetail[]);
-      if (!amass.length) return p;
       const amassByNct = new Map(amass.filter((t) => t.nctId).map((t) => [t.nctId as string, t]));
 
+      // Existing trials are the OT clinicalReports for THIS disease (already
+      // disease-scoped); enrich them in place from AMASS by NCT id.
       const existing = (p.trials ?? []).map((t) => {
         const a = t.nctId ? amassByNct.get(t.nctId) : undefined;
         if (!a) return t;
@@ -322,10 +395,25 @@ async function enrichCohortWithAmass(cohort: CohortProgram[]): Promise<CohortPro
         };
       });
 
+      // Only ADD AMASS-only trials that are plausibly about the queried disease. A
+      // bare drug-name query returns the drug's whole trial history across every
+      // indication (comparator arms, anaesthesia, smoking cessation, ...), which
+      // was flooding the dropdown with off-topic Phase-4 trials and making an
+      // approved programme read as "failure to failure".
       const seen = new Set(existing.map(trialKey));
-      const extra = amass.filter((t) => !seen.has(trialKey(t)));
-      const merged = [...existing, ...extra].sort(sortTrials).slice(0, MAX_TRIALS_PER_PROGRAM);
-      return { ...p, trials: merged };
+      const extra = amass.filter((t) => !seen.has(trialKey(t)) && trialMatchesDisease(t, diseaseTokensList));
+      // Sort by informativeness, then dedup by normalized trial identity (collapses
+      // per-country EU registrations), keeping the best-ranked representative.
+      const ordered = [...existing, ...extra].map(classifyTrial).sort(sortTrials);
+      const deduped: TrialDetail[] = [];
+      const seenKeys = new Set<string>();
+      for (const t of ordered) {
+        const k = trialKey(t);
+        if (seenKeys.has(k)) continue;
+        seenKeys.add(k);
+        deduped.push(t);
+      }
+      return { ...p, trials: deduped.slice(0, MAX_TRIALS_PER_PROGRAM) };
     })
   );
 }
@@ -792,7 +880,7 @@ export async function generateForecast(input: ForecastInput): Promise<ForecastRe
   // trials from the raw Open Targets candidates (+ pg_trials completion dates),
   // then merge in any AMASS trials fetched for the drug(s) the user typed.
   const { cohort: curatedCohort, cohortSummary } = await curateCohort(input, cands, subjectModality);
-  const cohort = await enrichCohortWithAmass(await attachTrials(curatedCohort, cands));
+  const cohort = await enrichCohortWithAmass(await attachTrials(curatedCohort, cands), diseaseTokens(input.diseaseName));
 
   // Stage 2 — modality feasibility + failure modes + derisking (LLM, grounded),
   // in parallel with the mechanism-of-action synthesis (independent LLM stage).
@@ -864,18 +952,33 @@ export async function generateForecast(input: ForecastInput): Promise<ForecastRe
 // Full dashboard from (disease + drug), NO target. Same pipeline as
 // generateForecast, but the cohort is the DISEASE's programs and the validation
 // term is the drug's efficacy evidence (not a target's genetics).
-export async function generateForecastTargetFree(diseaseName: string, drug: Drug): Promise<ForecastResult> {
+export async function generateForecastTargetFree(
+  diseaseName: string,
+  drug: Drug,
+  holdbackOverride?: HoldbackConfig
+): Promise<ForecastResult> {
   const now = new Date().toISOString();
+
+  // Blind retrospective mode: use an explicit config, else auto-detect from the
+  // backtest registry (so typing a registered drug + disease just works).
+  const holdbackCase = holdbackOverride ? null : holdbackFor(drug.chembl_id, diseaseName);
+  const holdback: HoldbackConfig | null = holdbackOverride ?? holdbackCase;
 
   const disease = await resolveDisease(diseaseName).catch(() => null);
   const efoId = disease?.id ?? null;
 
-  const [cands, effPapers, patents, drugTrials] = await Promise.all([
+  const [candsRaw, effPapersRaw, patents, drugTrialsRaw] = await Promise.all([
     efoId ? diseaseCohortCandidates(efoId).catch(() => [] as CohortCandidate[]) : Promise.resolve([] as CohortCandidate[]),
     searchPapers(`${drug.name} efficacy in ${diseaseName}: clinical trial outcomes, effect size`, 8).catch(() => [] as ElicitPaper[]),
     getPatents(diseaseName, diseaseName).catch(() => [] as Patent[]),
     getDrugTrials(drug.name).catch(() => [] as TrialDetail[]),
   ]);
+
+  // Censor the outcome-revealing inputs when in holdback mode. Off-mode these are
+  // pass-throughs, so the normal forecast is byte-identical.
+  const cands = holdback ? censorCandidates(candsRaw, holdback) : candsRaw;
+  const effPapers = holdback ? censorPapers(effPapersRaw, holdback) : effPapersRaw;
+  const drugTrials = holdback ? censorTrials(drugTrialsRaw, holdback) : drugTrialsRaw;
 
   const input: ForecastInput = {
     diseaseName,
@@ -887,19 +990,25 @@ export async function generateForecastTargetFree(diseaseName: string, drug: Drug
 
   // Approved-for-indication check: hard-0 attrition if this drug is already
   // approved for the disease (or a subtype). OT lookups are cached + free.
-  const approvedForIndication = efoId
-    ? await Promise.all([getDrugApprovals(drug.chembl_id), getDiseaseDescendants(efoId)])
-        .then(([ap, desc]) => isApprovedForIndication(ap, efoId, desc))
-        .catch(() => false)
-    : false;
+  // Bypassed in holdback mode: an as-of-cutoff prediction must not read a future
+  // approval, and survivors are predicted PRE-approval (a real number, not 0).
+  const approvedForIndication =
+    !holdback && efoId
+      ? await Promise.all([getDrugApprovals(drug.chembl_id), getDiseaseDescendants(efoId)])
+          .then(([ap, desc]) => isApprovedForIndication(ap, efoId, desc))
+          .catch(() => false)
+      : false;
 
   // Stage 1 — curate the DISEASE cohort (existing pipeline, target-free framing).
   const { cohort: curatedCohort, cohortSummary } = await curateCohort(input, cands, subjectModality);
-  const cohort = await enrichCohortWithAmass(await attachTrials(curatedCohort, cands));
+  const cohort = await enrichCohortWithAmass(await attachTrials(curatedCohort, cands), diseaseTokens(input.diseaseName));
 
-  // Efficacy-evidence stage -> 0-1 (replaces the genetic term). Cached per
-  // (drug, disease) so it matches the ranked-table estimate exactly.
-  const eff = await efficacyFor(drug, diseaseName, drugTrials, effPapers);
+  // Efficacy-evidence stage -> 0-1 (replaces the genetic term). In holdback mode
+  // compute directly from the CENSORED inputs and bypass the shared per-(drug,
+  // disease) cache, so a blind grade never reads or pollutes the normal cache.
+  const eff = holdback
+    ? await efficacyEvidence(drug, diseaseName, drugTrials, effPapers)
+    : await efficacyFor(drug, diseaseName, drugTrials, effPapers);
   const efficacyScore = efficacyScoreOf(eff);
 
   // Stage 2 — modality feasibility + failure modes + derisking, in parallel with
@@ -919,6 +1028,11 @@ export async function generateForecastTargetFree(diseaseName: string, drug: Drug
     efficacyRationale: eff.rationale,
     efficacyLevel: eff.level,
     approvedForIndication,
+    phaseOverride: holdback?.asOfPhase,
+    // Blind precedent: compute the fail fraction deterministically from the CENSORED
+    // raw cohort so the term does not inherit the LLM curator's outcome labels (which
+    // reflect parametric knowledge of post-cutoff failures). Off-mode: undefined.
+    cohortFailFractionOverride: holdback ? rawFailFraction(cands) : undefined,
   });
 
   // Stage 4 — verdict, confidence, adversarial.
@@ -947,6 +1061,14 @@ export async function generateForecastTargetFree(diseaseName: string, drug: Drug
       bins: [],
       note: "Calibration backtest is available only for the authored demo pairs; on-the-fly forecasts are not yet fitted.",
     },
+    holdback: holdback
+      ? ({
+          asOfDate: holdback.asOfDate,
+          asOfPhase: holdback.asOfPhase,
+          observedOutcome: holdbackCase?.observedOutcome,
+          label: holdback.label,
+        } satisfies HoldbackInfo)
+      : undefined,
   };
 
   return {

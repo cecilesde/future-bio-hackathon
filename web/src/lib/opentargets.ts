@@ -190,7 +190,7 @@ export async function diseaseCohortCandidates(efoId: string): Promise<CohortCand
   return mapCandidateRows(d.disease?.drugAndClinicalCandidates?.rows ?? []);
 }
 
-// ---- drug -> targets (for the auto-target tournament) ----
+// ---- drug -> targets (mechanism-of-action context, target-free lens) ----
 // A drug's mechanism-of-action targets, by HGNC symbol. Verified: aspirin
 // (CHEMBL25) -> PTGS1, PTGS2. Returns [] on error / unknown drug.
 export async function drugTargets(chemblId: string): Promise<string[]> {
