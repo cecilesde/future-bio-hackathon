@@ -11,13 +11,18 @@
 
 import type { Report, TargetAssoc, Drug } from "./types";
 
-type AreaKey = "metabolic" | "neurology" | "oncology" | "default";
+type AreaKey = "metabolic" | "neurodegeneration" | "neurology" | "oncology" | "default";
 export type PhaseKey = "pre" | "p1" | "p2" | "p3" | "filed";
 
 // P(approval | currently at phase), by therapeutic area. Shape follows published
 // likelihood-of-approval data (Wong, Siah & Lo 2019; BIO/Informa success rates).
+// Neurodegeneration is split out from general neurology because its Phase 2/3 success
+// is markedly worse than CNS as a whole (Alzheimer's / Parkinson's / ALS disease-
+// modifying programs have a well-documented, dismal late-stage approval rate); folding
+// them into the 0.46 CNS Phase 3 rate flattered exactly these programs.
 const BASE_RATE: Record<AreaKey, Record<PhaseKey, number>> = {
   metabolic: { pre: 0.08, p1: 0.14, p2: 0.22, p3: 0.6, filed: 0.88 },
+  neurodegeneration: { pre: 0.02, p1: 0.05, p2: 0.08, p3: 0.38, filed: 0.8 },
   neurology: { pre: 0.04, p1: 0.08, p2: 0.12, p3: 0.46, filed: 0.83 },
   oncology: { pre: 0.03, p1: 0.06, p2: 0.1, p3: 0.4, filed: 0.82 },
   default: { pre: 0.05, p1: 0.1, p2: 0.16, p3: 0.5, filed: 0.85 },
@@ -25,6 +30,7 @@ const BASE_RATE: Record<AreaKey, Record<PhaseKey, number>> = {
 
 const AREA_LABEL: Record<AreaKey, string> = {
   metabolic: "Metabolic & endocrine",
+  neurodegeneration: "Neurodegeneration",
   neurology: "Neurology / CNS",
   oncology: "Oncology",
   default: "All indications",
@@ -64,7 +70,10 @@ export function confidenceOf(f: {
 export function areaOf(diseaseName: string): AreaKey {
   const n = diseaseName.toLowerCase();
   if (/obesit|diabet|metaboli|lipid|nash|endocrin/.test(n)) return "metabolic";
-  if (/alzheim|parkinson|neuro|demen|epilep|sclerosis|migraine/.test(n)) return "neurology";
+  // Neurodegeneration (checked before general neurology): worse late-stage odds.
+  if (/alzheim|parkinson|dementia|huntington|amyotrophic|\bals\b|neurodegener|frontotemporal|lewy|motor neuron/.test(n))
+    return "neurodegeneration";
+  if (/neuro|demen|epilep|sclerosis|migraine/.test(n)) return "neurology";
   if (/cancer|neoplasm|carcinoma|lymphoma|leukemia|tumou?r|oncolog|sarcoma/.test(n)) return "oncology";
   return "default";
 }
