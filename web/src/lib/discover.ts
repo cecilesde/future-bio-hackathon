@@ -68,7 +68,7 @@ function rankOtDrugs(rows: DiseaseDrugRow[]): DiseaseDrugRow[] {
 }
 function otLines(rows: DiseaseDrugRow[]): string {
   return rankOtDrugs(rows)
-    .slice(0, 80)
+    .slice(0, 120)
     .map((r) => `- ${r.name} (${r.drugType ?? "?"}, ${r.maxClinicalStage ?? "?"})`)
     .join("\n");
 }
@@ -81,7 +81,7 @@ function paperLines(papers: ElicitPaper[]): string {
 }
 
 export async function discoverDrugs(diseaseName: string): Promise<DiscoveredDrug[]> {
-  const cacheKey = keyOf("discovery_v7", diseaseName); // v7: stage-ranked OT input + safety-net backfill
+  const cacheKey = keyOf("discovery_v8", diseaseName); // v8: deeper pool (~40) for new-discovery after hide-approved
   const cached = await readCache<DiscoveredDrug>(cacheKey);
   if (cached) return cached;
 
@@ -123,12 +123,12 @@ export async function discoverDrugs(diseaseName: string): Promise<DiscoveredDrug
   };
 
   const system =
-    "You are a drug-discovery analyst. From the provided evidence (an Open Targets list of drugs in clinical development or approved for a disease, a set of patents, and literature abstracts), produce a de-duplicated list of candidate DRUGS with reported or plausible efficacy for the disease. Include BOTH approved and experimental/clinical drugs. Use only named drugs (INN/common names), not compound codes or chemical structures. For each, give a one-sentence efficacy rationale and tag which sources support it. Prefer the Open Targets entries (they are the most reliable) and add named drugs from patents/literature that are not already in that list. The Open Targets list may include off-label or adjunct entries; keep the ones plausibly used or studied FOR this disease and skip clearly unrelated ones, but do NOT be overly restrictive: aim for a broad, useful shortlist. Do not invent drugs. Return 12 to 20 drugs (fewer only if the evidence genuinely supports fewer), most established first. Do not use em-dashes.";
+    "You are a drug-discovery analyst. From the provided evidence (an Open Targets list of drugs in clinical development or approved for a disease, a set of patents, and literature abstracts), produce a de-duplicated list of candidate DRUGS with reported or plausible efficacy for the disease. Include BOTH approved and experimental/clinical drugs. Use only named drugs (INN/common names), not compound codes or chemical structures. For each, give a one-sentence efficacy rationale and tag which sources support it. Prefer the Open Targets entries (they are the most reliable) and add named drugs from patents/literature that are not already in that list. The Open Targets list may include off-label or adjunct entries; keep the ones plausibly used or studied FOR this disease and skip clearly unrelated ones, but do NOT be overly restrictive: aim for a broad, deep shortlist. This list is used to surface NEW discovery candidates, so include a good number of EXPERIMENTAL / investigational agents (Phase 1-3, not yet approved for this disease), not only the established approved drugs. Do not invent drugs. Return 30 to 40 drugs (fewer only if the evidence genuinely supports fewer), most established first. Do not use em-dashes.";
   const user = `Disease: ${diseaseName}\n\nOpen Targets drugs (approved + clinical for this disease):\n${
     otDrugs.length ? otLines(otDrugs) : "(none)"
   }\n\nPatents (AMASS):\n${patentLines(patents)}\n\nLiterature (Elicit):\n${paperLines(papers)}\n\nProduce the candidate drug list.`;
 
-  const data = await extract<{ drugs: RawDiscovered[] }>(system, user, schema, { effort: "medium", maxTokens: 3500 });
+  const data = await extract<{ drugs: RawDiscovered[] }>(system, user, schema, { effort: "medium", maxTokens: 6000 });
 
   const otByName = new Map(otDrugs.map((r) => [r.name.toLowerCase(), r]));
   const seen = new Set<string>();
@@ -158,7 +158,9 @@ export async function discoverDrugs(diseaseName: string): Promise<DiscoveredDrug
   // the highest-staged OT drugs not already present until the table is usable. Only
   // include drugs that resolve to a real pg_drugs record (this also drops OT names
   // outside our ChEMBL universe). Also makes discovery robust to an Elicit outage.
-  const TARGET_MIN = 15;
+  // Target ~40 so that after the "hide approved for this indication" filter there is
+  // still a deep pool of experimental candidates for new-discovery.
+  const TARGET_MIN = 40;
   if (out.length < TARGET_MIN && otDrugs.length) {
     for (const r of rankOtDrugs(otDrugs)) {
       if (out.length >= TARGET_MIN) break;
@@ -215,6 +217,6 @@ export async function discoverDrugs(diseaseName: string): Promise<DiscoveredDrug
     return (a.status === "approved" ? 0 : 1) - (b.status === "approved" ? 0 : 1);
   });
 
-  if (out.length) await writeCache(cacheKey, "discovery_v7", diseaseName, out);
+  if (out.length) await writeCache(cacheKey, "discovery_v8", diseaseName, out);
   return out;
 }
