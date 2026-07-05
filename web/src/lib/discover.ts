@@ -20,7 +20,7 @@ import {
 } from "./opentargets";
 import { keyOf, readCache, writeCache, getDrugApprovals, getDiseaseDescendants } from "./evidence";
 import { generateForecastTargetFree } from "./forecast";
-import { forecastCacheKey, drugKeyOf, readForecastCache, writeForecastCache } from "./forecast-cache";
+import { forecastCacheKey, drugKeyOf, readForecastCache, writeForecastCache, SCHEMA_VERSION } from "./forecast-cache";
 import { restQuery } from "./supabase";
 import type { DiscoveredDrug, Drug, Patent } from "./types";
 
@@ -99,7 +99,12 @@ function paperLines(papers: ElicitPaper[]): string {
 }
 
 export async function discoverDrugs(diseaseName: string): Promise<DiscoveredDrug[]> {
-  const cacheKey = keyOf("discovery_v11", diseaseName); // v11: experimental-first backfill + real cached forecast per non-approved (matches click)
+  // Fold SCHEMA_VERSION into the key so any forecast-math change (which moves the
+  // per-drug numbers) auto-busts the ranked table too. Without this, a forecast bump
+  // (e.g. the precedent shrinkage) left the table showing stale numbers while the
+  // dashboard moved, so the two disagreed (table 4% vs dashboard 3%).
+  const cacheRef = `${SCHEMA_VERSION}|${diseaseName}`;
+  const cacheKey = keyOf("discovery_v11", cacheRef); // v11: experimental-first backfill + real cached forecast per non-approved (matches click)
   const cached = await readCache<DiscoveredDrug>(cacheKey);
   if (cached) return cached;
 
@@ -269,6 +274,6 @@ export async function discoverDrugs(diseaseName: string): Promise<DiscoveredDrug
     return (a.status === "approved" ? 0 : 1) - (b.status === "approved" ? 0 : 1);
   });
 
-  if (out.length) await writeCache(cacheKey, "discovery_v11", diseaseName, out);
+  if (out.length) await writeCache(cacheKey, "discovery_v11", cacheRef, out);
   return out;
 }
